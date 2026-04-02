@@ -8,10 +8,12 @@ CREATE TABLE customer (
 	id				integer not null,
 	fname			varchar(15) not null,
     lname			varchar(15) not null,
+    email			varchar(25) not null, -- ? Max email length subject to change
     pass_hash		char(25) not null, -- ? Unsure what hash length will be
     phone			char(10),
     created_at 		datetime not null,
     primary key (id),
+    unique (email),
     unique (pass_hash)
 );
 
