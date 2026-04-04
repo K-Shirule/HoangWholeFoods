@@ -9,8 +9,7 @@ def login_user(role):
     username = input().strip()
     print("\nPlease enter your Password: ")
     password = input().strip()
-    #query to check user password/username in correct table according to role
-    '''if(check_username(username, role)):
+    if(check_username(username, role)):
         if(check_password(password, role)):
             print("\nLogin successful.")
             logger.info(f"{role} '{username}' logged in successfully.")
@@ -21,7 +20,6 @@ def login_user(role):
         print("\nIncorrect Login Credentials.")
         logger.warning(f"{role} '{username}' - username not found in database.")
 
-    '''
 
 def register_user(role):
     if(role =="employee"):
