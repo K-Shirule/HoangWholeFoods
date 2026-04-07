@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Self
 from datetime import datetime
 from enum import Enum
 
@@ -16,23 +17,34 @@ class Rating(str, Enum):
     FOUR = '4'
     FIVE = '5'
 
-"""         >> CUSTOMER CLASS <<
+"""             >> CUSTOMER CLASS <<
 
-Use to instantiate a local instance of a
-customer entity.
+Description:    Use to instantiate a local instance of a
+                customer entity. Gives direct access to
+                all attributes without the need for
+                separate queries.
 
-Ex:
+IMPORTANT:      Row data must be accessed as a dictionary
+                and NOT a tuple
+
+                cursor = db.cursor(dictionary = True)
+
+Example Usage:
 
 row = /* Raw row data obtained from customer table */
 
-customer1: Customer = Customer(
-    id = row.id,
-    first_name = row.first_name,
-    last_name = row.last_name,
-    email = row.email,
-    password_hash = row.password_hash,
-    phone = row.phone,
-    created_at = row.created_at
+# Easiest way
+customer1: Customer = Customer.from_dict(row)
+
+# Alternate way
+customer2: Customer = Customer(
+    c_id = row['c_id'],
+    first_name = row['first_name'],
+    last_name = row['last_name'],
+    email = row['email'],
+    password_hash = row['password_hash'],
+    phone = row['phone'],
+    created_at = row['created_at']
 )
 
 printf(customer1.first_name)
@@ -44,7 +56,7 @@ printf(customer2.last_name)
 @dataclass(frozen=True)
 class Customer:
 
-    id:             int  # PK
+    c_id:           int  # PK
 
     first_name:     str  # Max len: 15
     last_name:      str  # Max len: 15
@@ -53,6 +65,27 @@ class Customer:
     phone:          str  # Len: 10
 
     created_at:     datetime
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Self:
+
+        c_id = data['c_id']
+        first_name = data['first_name'],
+        last_name = data['last_name'],
+        email = data['email'],
+        password_hash = data['password_hash'],
+        phone = data['phone'],
+        created_at = data['created_at']
+
+        return cls(
+            c_id = c_id,
+            first_name = first_name,
+            last_name = last_name,
+            email = email,
+            password_hash = password_hash,
+            phone = phone,
+            created_at = created_at
+        )
 
     def __post_init__(self):
         

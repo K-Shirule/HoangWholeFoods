@@ -11,7 +11,7 @@ WHERE c.email = %s
 -- >> getCustomersFromAttr(String: attr, String: key)
 SELECT c.*
 FROM customer AS c
-WHERE c.%s = %s
+WHERE c.{attr} = %s
 ;
 
 -- >> getPasswordHash(String: email)
