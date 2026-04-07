@@ -8,8 +8,8 @@ CREATE TABLE customer (
 	c_id			integer auto_increment not null,
 	first_name		varchar(15) not null,
     last_name		varchar(15) not null,
-    email			varchar(25) not null, -- ? Max email length subject to change
-    password_hash	char(25) not null, -- ? Unsure what hash length will be
+    email			varchar(25) not null,
+    password_hash	char(25) not null, 
     phone			char(10),
     created_at 		datetime not null,
     primary key (c_id),
@@ -20,11 +20,12 @@ CREATE TABLE customer (
 CREATE TABLE shopping_cart (
 	cart_id			integer auto_increment not null,
     created_at		datetime not null,
-    cart_status		enum('empty', 'in_use', 'done') not null, -- ? Card status codes available to change
+    cart_status		enum('new', 'done') not null,
     c_id			integer not null,
     primary key (cart_id),
     foreign key (c_id) references customer(c_id)
 		on delete cascade
+        on update cascade
 );
 
 CREATE TABLE review (
@@ -37,8 +38,10 @@ CREATE TABLE review (
     primary key (review_id),
     foreign key (c_id) references customer(c_id)
 		on delete cascade
+        on update cascade
     -- foreign key (p_id) references product(prod_id) 	-- ! Uncomment once "product" table is merged
     -- 		on delete cascade
+    --      on update cascade
 );
 
 -- RELATIONSHIPS --
@@ -50,6 +53,8 @@ CREATE TABLE cart_contains (
     primary key (cart_id, p_id),
     foreign key (cart_id) references shopping_cart(cart_id)
 		on delete cascade
+        on update cascade
     -- foreign key (p_id) references product(prod_id)		-- ! Uncomment once "product" table is merged
     -- 		on delete set null
+    --      on update cascade
 );

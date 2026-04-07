@@ -5,8 +5,7 @@ from enum import Enum
 
 # cart_status enum definition for shopping_cart attribute
 class CartStatus(str, Enum):
-    EMPTY = 'empty'
-    IN_USE = 'in_use'
+    NEW = 'new'
     DONE = 'done'
 
 # rating enum definition for review attribute
