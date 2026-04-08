@@ -20,7 +20,7 @@ def customer_page(customer_id, username):
         print("5. Logout")
         choice = input("Please enter your choice (1-5): ")
         if choice == '1':
-            view_product_catalog()
+            view_product_catalog(customer_id)
         elif choice == '2':
             view_shopping_cart(customer_id)
         elif choice == '3':
@@ -173,7 +173,10 @@ def checkout(customer_id, cart_id):
             delivery_address = input().strip()
             print("Your order will be delivered to the provided address within the next 3-5 business days.")
             break
-
+        else:
+            print("Invalid choice. Try Again.")
+            time.sleep(3)
+        logger.info(f"Customer '{customer_id}' completed checkout for cart '{cart_id}'.")
         print("Checkout successful! Your order ID is: {order_id}")
         print("1. View Order Details")
         print("2. Return to Customer Page")
@@ -193,17 +196,25 @@ def return_item(order_id, product_id, customer_id):
     #also make sure the return quantity does not exceed the quantity of the item in the order
     #add the return order to the return_order table
     print("Item return initiated. A floor employee will either approve or deny your return request within the next 24-48 hours.")
-    time.sleep(3)
+    logger.info(f"Customer '{customer_id}' initiated a return for product '{product_id}' in order '{order_id}'.")
+    time.sleep(5)
 
 def review_item(product_id, customer_id):
     print("Leaving review...")
     print("Please enter your rating for the product (1-5): ")
-    review = input().strip()
-    print("Please leave any additional comments: ")
-    rating = input().strip()
     #make sure rating is an integer between 1 and 5
+    rating = input().strip()
+    while not rating.isdigit() or not (1 <= int(rating) <= 5):
+        print("Invalid rating. Please enter a number between 1 and 5.")
+        rating = input().strip()
+    print("Please leave any additional comments: ")
+    comments = input().strip()
+    while len(comments) > 255:
+        print("Comments cannot exceed 255 characters. Please try again.")
+        comments = input().strip()
     #add the review to the reviews table in the database using the product_id, customer_id, review, and rating variables passed as parameters.
     print("Thank you for leaving a review!")
+    logger.info(f"Customer '{customer_id}' left a review for product '{product_id}' .")
     time.sleep(3)
 
 

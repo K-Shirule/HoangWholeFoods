@@ -1,4 +1,7 @@
+from time import time
+
 import bcrypt
+from customer_page import customer_page
 from logger_config import get_logger
 
 logger = get_logger(__name__)
@@ -12,6 +15,8 @@ def login_user(role):
     if(check_username(username, role)):
         if(check_password(password, role)):
             print("\nLogin successful.")
+            time.sleep(3)
+            customer_page()
         else:
             print("\nIncorrect Login Credentials.")
     else:
