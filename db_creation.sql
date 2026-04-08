@@ -12,10 +12,10 @@ CREATE TABLE store (
     st_id INT AUTO_INCREMENT PRIMARY KEY,
     location VARCHAR(100) NOT NULL,
     branch_name VARCHAR(100) NOT NULL,
-    phone VARCHAR(20),
-    email VARCHAR(100),
-    address_id INT,
-    manager_e_id INT UNIQUE
+    phone VARCHAR(20) not null,
+    email VARCHAR(100) not null,
+    store_address varchar(255) not null,
+    manager_e_id INT UNIQUE not null
 );
 
 CREATE TABLE employee (
