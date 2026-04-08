@@ -13,10 +13,12 @@ def login_user(role):
     print("\nPlease enter your Password: ")
     password = input().strip()
     if(check_username(username, role)):
+        #query to retireve customer_id from database using username and role
+        customer_id = get_customer_id(username, role)
         if(check_password(password, role)):
             print("\nLogin successful.")
             time.sleep(3)
-            customer_page()
+            customer_page(username, customer_id)
         else:
             print("\nIncorrect Login Credentials.")
     else:
@@ -120,4 +122,8 @@ def check_password(password, role):
         '''
     pass
 
+def get_customer_id(username, role):
+    #query to retrieve customer_id from database using username and role
+    #return customer_id
+    pass
 
