@@ -1,4 +1,7 @@
+from time import time
+
 import bcrypt
+from customer_page import customer_page
 from logger_config import get_logger
 
 logger = get_logger(__name__)
@@ -10,12 +13,17 @@ def login_user(role):
     print("\nPlease enter your Password: ")
     password = input().strip()
     if(check_username(username, role)):
+        #query to retireve customer_id from database using username and role
+        customer_id = get_customer_id(username, role)
         if(check_password(password, role)):
             print("\nLogin successful.")
-            logger.info(f"{role} '{username}' logged in successfully.")
+            time.sleep(3)
+            if(role == "employee"):
+                #query to retrieve employee role, and store_id, employee id from database using username
+                if(employee_role == "inventory manager"):
+                    inventory_manager_menu(username, store_id, employee_id)
         else:
             print("\nIncorrect Login Credentials.")
-            logger.warning(f"{role} '{username}' entered incorrect password.")
     else:
         print("\nIncorrect Login Credentials.")
         logger.warning(f"{role} '{username}' - username not found in database.")
@@ -41,13 +49,13 @@ def register_user(role):
         role = input("\nEnter your choice: ").strip()
     
     elif(role == "supplier"):
-        print("Please enter the company pin provided by the store manager:")
+        print("Please enter the supplier pin provided by the store manager:")
         supplier_pin = input().strip()
         #query to check if supplier pin is correct company result in a boolean
         if(pin_match):
-            print("\nCompany pin accepted.")
+            print("\nSupplier pin accepted.")
         else:
-            print("\nInvalid company pin.")
+            print("\nInvalid supplier pin.")
             logger.warning(f"Supplier attempted to register with invalid company pin.")
             return
     
@@ -72,6 +80,10 @@ def register_user(role):
     else:
         #query to insert new customer into database with username and hashed password
         pass
+    print("\nRegistration successful. You may now log in with your new credentials.")
+    '''
+    get id from table by searching username
+    logger.info(f"New {role} registered and given id: '{id}'.")'''
 
 #check if username in a table for given role
 def check_username(username, role):
@@ -95,10 +107,26 @@ def check_username(username, role):
 #check if password is correct for a given username and role
 def check_password(password, role):
     #query to retrieve hashed password from database
+    if(role == "employee"):
+        #query employee table for hashed password using username
+        pass
+    elif(role == "supplier"):
+        #query supplier table for hashed password using username
+        pass
+    else:
+        #query customer table for hashed password using username
+        pass
     '''if bcrypt.checkpw(b"secure_password_123", hashed):
+        logger.info(f"{role} '{c_id}' logged in successfully.")
         return True
     else
-        return False'''
+        logger.warning(f"{role} '{c_id}' entered incorrect password.")
+        return False
+        '''
     pass
 
-
+def get_customer_id(username, role):
+    #query to retrieve id either customer id or employee id 
+    # from database using username and role
+    #return the id
+    pass
