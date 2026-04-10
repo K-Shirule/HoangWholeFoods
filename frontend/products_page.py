@@ -10,27 +10,30 @@ def view_product_catalog(customer_id):
         clear_screen()
         print("Product Catalog")
         print("-----------------------------")
-
+        print("Please select the store you want to browse:")
+        #query to display all the store info like name, location etc.
+        store_id = input("Enter Store ID: ").strip()
+        #make sure the store_id is valid and is less than the no. of rows returned by the above query
         # TODO:
-        # Query database to display all products.
-        # Suggested fields to show:
+        # Query database to display all products at that store.
         # - product ID
         # - product name
         # - category
         # - price
         # - unit type / units
-        # - current availability if desired
+        # - stock availability
 
         print("\nOptions:")
         print("1. Search Products")
         print("2. View Product Details")
         print("3. Add Product to Cart")
-        print("4. Return to Customer Page")
+        print("4. Change Store")
+        print("5. Return to Customer Page")
 
-        choice = input("Please enter your choice (1-4): ").strip()
+        choice = input("Please enter your choice (1-5): ").strip()
 
         if choice == "1":
-            search_products()
+            search_products(store_id)
 
         elif choice == "2":
             product_id = input("Enter the Product ID to view details: ").strip()
@@ -48,14 +51,17 @@ def view_product_catalog(customer_id):
             add_product_to_cart(customer_id, product_id, int(quantity))
 
         elif choice == "4":
-            return
+            continue  # will loop back to the store selection
+
+        elif choice == "5":
+            return 
 
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
 
 
-def search_products():
+def search_products(store_id):
     while True:
         clear_screen()
         print("Search Products")
