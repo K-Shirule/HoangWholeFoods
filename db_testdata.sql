@@ -197,3 +197,122 @@ CREATE TABLE restock_contains (
     FOREIGN KEY (list_id) REFERENCES restock_list(list_id),
     FOREIGN KEY (prod_id) REFERENCES product(prod_id)
 );
+
+
+-- >> TEST DATA << --
+
+
+-- Category
+INSERT INTO category (name, description) VALUES
+('Produce', 'Fresh fruits and vegetables'),
+('Dairy', 'Milk, cheese, and related products'),
+('Bakery', 'Bread and baked goods'),
+('Meat', 'Fresh and processed meats'),
+('Beverages', 'Drinks and refreshments');
+
+-- Temporarily allow Manager to be NULL
+ALTER TABLE store
+MODIFY manager_e_id INT NULL;
+
+-- Store (With NULL Managers)
+INSERT INTO store (location, branch_name, phone, email, store_address, manager_e_id) VALUES
+('San Jose', 'SJ Downtown', '408-111-2222', 'sj@hwf.com', '123 Market St', NULL),
+('Santa Clara', 'SC Central', '408-333-4444', 'sc@hwf.com', '456 El Camino', NULL);
+
+-- Employee
+INSERT INTO employee 
+(st_id, first_name, last_name, email, phone, salary, password_hash, role, start_date)
+VALUES
+(1, 'Alice', 'Nguyen', 'alice@hwf.com', '111-111-1111', 80000, 'hash1', 'store_manager', '2023-01-01'),
+(2, 'Bob', 'Tran', 'bob@hwf.com', '222-222-2222', 78000, 'hash2', 'store_manager', '2023-01-01'),
+(1, 'Charlie', 'Le', 'charlie@hwf.com', '333-333-3333', 50000, 'hash3', 'inventory_manager', '2023-02-01'),
+(1, 'David', 'Pham', 'david@hwf.com', '444-444-4444', 35000, 'hash4', 'floor_employee', '2023-03-01'),
+(2, 'Eva', 'Hoang', 'eva@hwf.com', '555-555-5555', 36000, 'hash5', 'customer_service_associate', '2023-03-01'),
+(2, 'Frank', 'Vu', 'frank@hwf.com', '666-666-6666', 34000, 'hash6', 'delivery_associate', '2023-03-01');
+
+-- Store (Include Managers)
+UPDATE store SET manager_e_id = 1 WHERE st_id = 1;
+UPDATE store SET manager_e_id = 2 WHERE st_id = 2;
+
+-- Customer
+INSERT INTO customer 
+(first_name, last_name, email, password_hash, phone, created_at)
+VALUES
+('John', 'Doe', 'john@email.com', 'hash', '999-111-2222', NOW()),
+('Jane', 'Smith', 'jane@email.com', 'hash', '999-333-4444', NOW()),
+('Mike', 'Lee', 'mike@email.com', 'hash', '999-555-6666', NOW());
+
+-- Product
+INSERT INTO product 
+(category_id, name, description, unit_price, units, unit_type)
+VALUES
+(1, 'Apple', 'Red apples', 0.99, 1, 'each'),
+(1, 'Banana', 'Yellow bananas', 0.59, 1, 'each'),
+(2, 'Milk', 'Whole milk gallon', 4.99, 1, 'gallon'),
+(3, 'Bread', 'White bread loaf', 2.99, 1, 'loaf'),
+(4, 'Chicken Breast', 'Boneless chicken', 6.99, 1, 'lb'),
+(5, 'Orange Juice', 'Fresh juice', 3.99, 1, 'bottle');
+
+-- Stocks
+INSERT INTO stocks (store_id, prod_id, quantity) VALUES
+(1, 1, 100),
+(1, 2, 120),
+(1, 3, 50),
+(2, 1, 80),
+(2, 4, 60),
+(2, 6, 70);
+
+-- Shopping Cart
+INSERT INTO shopping_cart (created_at, cart_status, c_id) VALUES
+(NOW(), 'new', 1),
+(NOW(), 'done', 2);
+
+-- Cart Contains
+INSERT INTO cart_contains (cart_id, prod_id, quantity) VALUES
+(1, 1, 3),
+(1, 3, 1),
+(2, 4, 2);
+
+-- Orders
+INSERT INTO orders 
+(delivery_method, total_amount, order_type, order_status, c_id, st_id, e_id)
+VALUES
+('delivery', 25.50, 'online', 'completed', 1, 1, 6),
+('pickup', 15.00, 'in_store', 'pending', 2, 2, 5);
+
+-- Order Contains
+INSERT INTO order_contains (order_id, prod_id, quantity, price_at_purchase) VALUES
+(1, 1, 5, 0.99),
+(1, 3, 2, 4.99),
+(2, 4, 3, 2.99);
+
+-- Review
+INSERT INTO review (rating, r_comment, created_at, c_id, prod_id) VALUES
+('5', 'Great apples!', NOW(), 1, 1),
+('4', 'Good milk', NOW(), 2, 3);
+
+-- Return Record
+INSERT INTO return_record 
+(order_id, prod_id, return_quantity, return_reason, processed_by_employee_id)
+VALUES
+(1, 1, 1, 'Damaged item', 3);
+
+-- Payments
+INSERT INTO payments (method, amount, payment_status, order_id) VALUES
+('card', 25.50, 'paid', 1),
+('cash', 15.00, 'pending', 2);
+
+-- Delivery Record
+INSERT INTO delivery_record (delivered_to, delivery_status, order_id, e_id) VALUES
+('John Doe', 'delivered', 1, 6);
+
+-- Restock List
+INSERT INTO restock_list 
+(store_id, created_by, approved_by, status, created_at, approved_at)
+VALUES
+(1, 3, 1, 'approved', NOW(), NOW());
+
+-- Restock Contains
+INSERT INTO restock_contains (list_id, prod_id, quantity) VALUES
+(1, 1, 50),
+(1, 3, 30);

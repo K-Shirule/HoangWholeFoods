@@ -1,8 +1,7 @@
 from time import time
 
 import bcrypt
-from customer_page import customer_page
-from logger_config import get_logger
+from frontend.logger_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -18,7 +17,9 @@ def login_user(role):
         if(check_password(password, role)):
             print("\nLogin successful.")
             time.sleep(3)
-            customer_page(username, customer_id)
+            if role == 'customer':
+                from frontend.customer_page import customer_page
+                customer_page(username, customer_id)
         else:
             print("\nIncorrect Login Credentials.")
     else:

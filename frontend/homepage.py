@@ -3,13 +3,9 @@
 import os
 import sys
 
-from frontend.auth import login_user
-#from auth import login_user, register_user
-
-
-def clear_screen():
-    os.system("cls" if os.name == "nt" else "clear")
-
+from frontend.auth import login_user, register_user
+from frontend.utils import clear_screen
+from frontend.db_connector import db
 
 def pause():
     input("\nPress Enter to continue...")
@@ -73,6 +69,7 @@ def show_homepage():
             pause()
         elif choice == "3":
             print("\nGoodbye.")
+            db.close()
             sys.exit()
         else:
             print("\nInvalid choice.")
