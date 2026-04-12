@@ -21,6 +21,8 @@ CREATE TABLE store (
     phone VARCHAR(20) not null,
     email VARCHAR(100) not null,
     address varchar(60) not null,
+    store_pin varchar(40) not null,
+    supplier_pin varchar(40) not null,
     manager_e_id INT UNIQUE
 );
 
