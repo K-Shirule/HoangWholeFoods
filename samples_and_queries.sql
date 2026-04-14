@@ -82,3 +82,15 @@ FROM supplier sp JOIN supplier_order so ON sp.supplier_id = so.supplier_id
 GROUP BY sp.supplier_name
 ORDER BY total_orders DESC;
 
+-- show products that are supplied by more than one supplier
+SELECT prod_id, COUNT(supplier_id) AS supplier_count
+FROM supplies
+GROUP BY prod_id
+HAVING COUNT(supplier_id) > 1
+ORDER BY supplier_count DESC;
+
+-- show suppliers that do not have any orders, show name, email, and billing term
+SELECT supplier_name, email, billing_term
+FROM supplier
+WHERE supplier_id NOT IN (SELECT DISTINCT supplier_id FROM supplier_order) 
+ORDER BY supplier_name ASC;
