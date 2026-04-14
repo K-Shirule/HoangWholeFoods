@@ -1,7 +1,14 @@
 from time import time
 
 import bcrypt
-from customer_page import customer_page
+
+from frontend.utils import clear_screen
+
+from frontend.store_manager_menu import store_manager_page
+from frontend.inventory_manager_menu import inventory_manager_menu
+from frontend.floor_employee_menu import floor_employee_page
+from frontend.delivery_associate import delivery_associate_page
+
 from logger_config import get_logger
 
 logger = get_logger(__name__)
@@ -21,7 +28,18 @@ def login_user(role):
             if(role == "employee"):
                 #query to retrieve employee role, and store_id, employee id from database using username
                 if(employee_role == "inventory manager"):
-                    inventory_manager_menu(username, store_id, employee_id)
+                    inventory_manager_page(store_id, employee_id)
+                elif(employee_role == "floor employee"):
+                    floor_employee_page(store_id, employee_id)
+                elif(employee_role == "delivery associate"):
+                    delivery_associate_page(store_id, employee_id)
+                elif(role == "store manager"):
+                    store_manager_page(store_id, employee_id)
+
+            elif(role == "customer"):
+                customer_menu(customer_id)
+            elif(role == "supplier"):
+                supplier_menu(customer_id)
         else:
             print("\nIncorrect Login Credentials.")
     else:

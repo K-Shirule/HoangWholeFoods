@@ -7,10 +7,6 @@ from frontend.auth import login_user
 #from auth import login_user, register_user
 
 
-def clear_screen():
-    os.system("cls" if os.name == "nt" else "clear")
-
-
 def pause():
     input("\nPress Enter to continue...")
 
