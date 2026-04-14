@@ -2,6 +2,7 @@ import time
 from homepage import clear_screen
 from logger_config import get_logger
 from frontend.utils import clear_screen, print_load
+from create_supplier_orders import create_supplier_orders_for_restock_list
 
 logger = get_logger()
 
@@ -142,6 +143,7 @@ def approve_restock_list(list_id, store_id, employee_id):
 
     # TODO: Update status = 'approved', set approved_by and approved_at
 
+    create_supplier_orders_for_restock_list(list_id, store_id)
     logger.info(f"Restock list '{list_id}' approved by '{employee_id}'.")
     time.sleep(2)
 
