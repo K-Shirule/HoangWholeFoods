@@ -20,16 +20,16 @@ insert into supplier_order (so_id, supplier_id, date_of_order, total_amount, pay
 (1, 3, '2026-04-20', 525.00, 'Credit Card', 'Shipped', '2024-01-30', null, 'TRACK20260420', 1);
 
 insert into so_contains (so_id, supplier_id, prod_id, quantity, cost_at_purchase) values
-(1, 1, 1111, 100, 5.00),
-(2, 2, 2222, 50, 6.00),
-(3, 1, 3333, 200, 2.00),
-(4, 3, 4444, 150, 3.50);
+(1, 1, 1, 100, 5.00),
+(1, 2, 2, 50, 6.00),
+(2, 1, 3, 200, 2.00),
+(1, 3, 4, 150, 3.50);
 
 insert into supplies (supplier_id, prod_id) values
-(1, 1111),
-(2, 2222),
-(1, 3333),
-(3, 4444);
+(1, 1),
+(2, 2),
+(1, 3),
+(3, 4);
 
 
 -- insert new supplier without having all information
@@ -58,26 +58,26 @@ SELECR *
 FROM so_contains;
 
 -- show all products supplied by each supplier
-SELECT sp.supplier_name, p.prod_name, s.supplier_id, s.prod_id
+SELECT s.supplier_id, sp.supplier_name, s.prod_id, p.name
 FROM supplier sp JOIN supplies s ON sp.supplier_id = s.supplier_id
                 JOIN product p ON s.prod_id = p.prod_id
 ORDER BY sp.supplier_name ASC;
         
 -- show all orders with their corresponding supplier names and billing terms
-SELECT so.so_id, sp.supplier_name, b.billing_term, so.total_amount, so.status
+SELECT sp.supplier_name, so.so_id, b.billing_term, so.total_amount, so.status
 FROM supplier_order so JOIN supplier sp ON so.supplier_id = sp.supplier_id
                     JOIN billing_term b ON sp.billing_term = b.billing_term
 ORDER BY so.so_id ASC;
 
 -- show supplier that have pending orders, and total of pending orders
-SELECT sp.supplier_name, COUNT (so.so_id) AS pending_orders
+SELECT sp.supplier_name, COUNT(so.so_id) AS pending_orders
 FROM supplier sp JOIN supplier_order so ON sp.supplier_id = so.supplier_id
 WHERE so.status = 'Pending'
 GROUP BY sp.supplier_name
 ORDER BY sp.supplier_name ASC;
 
 -- show the total orders for each supplier
-SELECT sp.supplier_name, COUNT (so.so_id) AS total_orders
+SELECT sp.supplier_name, COUNT(so.so_id) AS total_orders
 FROM supplier sp JOIN supplier_order so ON sp.supplier_id = so.supplier_id
 GROUP BY sp.supplier_name
 ORDER BY total_orders DESC;
