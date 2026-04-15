@@ -162,7 +162,7 @@ CREATE TABLE delivery_record (
     delivered_to VARCHAR(60),
     delivery_status VARCHAR(20),
     order_id INT NOT NULL UNIQUE,
-    e_id INT NOT NULL,
+    e_id INT,
     FOREIGN KEY (order_id) REFERENCES orders(order_id),
     FOREIGN KEY (e_id) REFERENCES employee(e_id)
 );

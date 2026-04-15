@@ -556,6 +556,7 @@ def checkout(customer_id, cart_id, store_id):
     #after successful checkout, generate order_id variable to pass as parameter in view_order function
 
     delivery_method = 'N/A'
+    delivery_address = 'In-Store'
 
     while(True):
         clear_screen()
@@ -569,7 +570,7 @@ def checkout(customer_id, cart_id, store_id):
         elif choice == '2':
             delivery_method = 'Delivery'
             print("You have selected delivery. Please enter your delivery address: ")
-            # delivery_address = input().strip() # >>> Unused & No table attribute
+            delivery_address = input().strip()
             print("Your order will be delivered to the provided address within the next 3-5 business days.")
         else:
             print_load("Invalid choice.", 1.5)
@@ -633,6 +634,24 @@ def checkout(customer_id, cart_id, store_id):
         db.commit()
 
         # print(f"Inserted {cursor.rowcount} row(s).") # Debug check: Rows inserted should match rows in cart
+        cursor.close()
+
+        # Query to add to delivery_record
+        cursor = db.cursor(dictionary=True)
+        query = (
+            "INSERT INTO delivery_record(" \
+            "   delivered_at, " \
+            "   delivered_to, " \
+            "   delivery_status, " \
+            "   order_id, " \
+            "   e_id" \
+            ") VALUES (NULL, %s, 'In-Progress', %s, NULL)"
+        )
+        args = (delivery_address, order_id)
+        cursor.execute(query, args)
+        db.commit()
+
+        #print(f"Inserted {cursor.rowcount} row(s).") # Debug check. Only 1 row should be inserted
         cursor.close()
 
         # Query to update old cart status
