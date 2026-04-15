@@ -228,11 +228,13 @@ CREATE TABLE supplier_order (
     received_date DATE,
     tracking_number VARCHAR(100),
     st_id INT,
+    list_id INT,
     PRIMARY KEY (so_id, supplier_id),
     FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id)
         ON DELETE CASCADE,
     FOREIGN KEY (st_id) REFERENCES store(st_id)
         ON DELETE SET NULL
+    FOREIGN KEY (list_id) REFERENCES restock_list(list_id)
 );
 
 CREATE TABLE so_contains (
