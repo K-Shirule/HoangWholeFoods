@@ -1,11 +1,11 @@
 import time
 import bcrypt
 
-from frontend.auth import check_username
-from frontend.utils import clear_screen, print_load
-from frontend.product_page import view_product_catalog
-from frontend.logger_config import get_logger
-from frontend.db_connector import db
+from auth import check_username
+from utils import clear_screen, print_load
+from product_page import view_product_catalog
+from logger_config import get_logger
+from db_connector import db
 
 logger = get_logger(__name__)
 

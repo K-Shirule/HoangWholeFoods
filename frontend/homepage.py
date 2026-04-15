@@ -3,9 +3,9 @@
 import os
 import sys
 
-from frontend.auth import login_user, register_user
-from frontend.utils import clear_screen
-from frontend.db_connector import db
+from auth import login_user, register_user
+from utils import clear_screen
+from db_connector import db
 
 def pause():
     input("\nPress Enter to continue...")
