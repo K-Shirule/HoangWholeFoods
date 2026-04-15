@@ -21,9 +21,9 @@ CREATE TABLE store (
     phone VARCHAR(20) not null,
     email VARCHAR(100) not null,
     address varchar(60) not null,
-    store_pin varchar(40) not null,
-    supplier_pin varchar(40) not null,
-    manager_e_id INT UNIQUE
+    manager_e_id INT UNIQUE,
+    store_pin varchar(10),
+    supplier_pin varchar(10)
 );
 
 CREATE TABLE customer (
@@ -33,7 +33,7 @@ CREATE TABLE customer (
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
-    created_at DATETIME NOT NULL
+    created_at timestamp NOT NULL default current_timestamp
 );
 
 CREATE TABLE supplier (
@@ -76,7 +76,6 @@ CREATE TABLE employee (
         'store_manager',
         'inventory_manager',
         'floor_employee',
-        'customer_service_associate',
         'delivery_associate'
     )),
     CHECK (end_date IS NULL OR end_date >= start_date)
@@ -93,7 +92,7 @@ CREATE TABLE orders (
     total_amount DECIMAL(10,2) UNSIGNED,
     order_type VARCHAR(20),
     order_status VARCHAR(20),
-    c_id INT NOT NULL,
+    c_id INT,
     st_id INT NOT NULL,
     e_id INT,
     FOREIGN KEY (c_id) REFERENCES customer(c_id),
@@ -103,7 +102,7 @@ CREATE TABLE orders (
 
 CREATE TABLE shopping_cart (
     cart_id INT AUTO_INCREMENT PRIMARY KEY,
-    created_at DATETIME NOT NULL,
+    created_at timestamp NOT NULL default current_timestamp,
     cart_status ENUM('new', 'done') NOT NULL,
     c_id INT NOT NULL UNIQUE,
     FOREIGN KEY (c_id) REFERENCES customer(c_id)
@@ -115,7 +114,7 @@ CREATE TABLE review (
     review_id INT AUTO_INCREMENT PRIMARY KEY,
     rating ENUM('1', '2', '3', '4', '5'),
     r_comment TEXT,
-    created_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL default current_timestamp,
     c_id INT NOT NULL,
     prod_id INT NOT NULL,
     FOREIGN KEY (c_id) REFERENCES customer(c_id)
@@ -193,7 +192,7 @@ CREATE TABLE restock_list (
     created_by INT NOT NULL,
     approved_by INT,
     restock_status VARCHAR(50) NOT NULL,
-    created_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL default current_timestamp,
     approved_at DATETIME,
     FOREIGN KEY (store_id) REFERENCES store(st_id),
     FOREIGN KEY (created_by) REFERENCES employee(e_id),
@@ -221,7 +220,7 @@ CREATE TABLE restock_contains (
 CREATE TABLE supplier_order (
     so_id INT NOT NULL,
     supplier_id INT NOT NULL,
-    date_of_order DATE NOT NULL,
+    date_of_order DATE NOT NULL default current_timestamp,
     total_amount DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50),
     status VARCHAR(20),
