@@ -1,6 +1,6 @@
 from time import sleep
 from logger_config import get_logger
-from homepage import clear_screen
+from utils import clear_screen, print_load
 
 logger = get_logger(__name__)
 
@@ -57,7 +57,7 @@ def view_inventory(store_id):
 
 def view_supplier_products(store_id, employee_id):
     print("\nViewing supplier products...")
-    time.sleep(3)
+    sleep(3)
     while True:
         clear_screen()
         # TODO: Query database to fetch supplier products (product + supplies)
@@ -88,7 +88,7 @@ def add_product_to_restock_list(product_id, quantity, store_id, employee_id):
 
     print("Product added to restock list.")
     logger.info(f"Employee {employee_id} added product {product_id} (quantity: {quantity}) to restock list for store {store_id}.")
-    time.sleep(3)
+    sleep(3)
 
 def view_restock_list(store_id):
     print("\nViewing current restock list...")
@@ -111,7 +111,7 @@ def view_restock_list(store_id):
 
 def remove_product_from_restock_list(product_id, store_id, employee_id):
     print("\nRemoving product from restock list...")
-    time.sleep(3)
+    sleep(3)
     #query to remove the product from the restock list using th store_id and product_id
     logger.info(f"Product {product_id} removed from restock list for store {store_id} by employee {employee_id}.")
 
@@ -131,7 +131,7 @@ def remove_product(store_id, employee_id):
 
     print("Product removed from inventory.")
     logger.info(f"Product {product_id} removed from inventory for store {store_id} by employee {employee_id}.")
-    time.sleep(3)
+    sleep(3)
 
 def add_new_product(store_id, employee_id):
     print("\nAdd product to inventory")
@@ -145,7 +145,7 @@ def add_new_product(store_id, employee_id):
 
     print("Product added/updated in inventory.")
     logger.info(f"Product {product_id} (quantity: {quantity}) added to inventory for store {store_id} by employee {employee_id}.")
-    time.sleep(3)
+    sleep(3)
 
 def mark_restock_list_delivered(store_id, employee_id):
     print("\nMark Restock List as Delivered")
@@ -163,5 +163,5 @@ def mark_restock_list_delivered(store_id, employee_id):
 
     print(f"Restock list {list_id} marked as delivered and inventory updated.")
     logger.info(f"Restock list {list_id} marked as delivered for store {store_id} by employee {employee_id}.")
-    time.sleep(3)
+    sleep(3)
 
