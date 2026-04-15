@@ -254,6 +254,7 @@ CREATE TABLE so_contains (
 CREATE TABLE supplies (
     supplier_id INT NOT NULL,
     prod_id INT NOT NULL,
+    supplier_price DECIMAL(10,2) NOT NULL,
     PRIMARY KEY (supplier_id, prod_id),
     FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id)
         ON DELETE CASCADE,
