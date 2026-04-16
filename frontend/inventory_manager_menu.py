@@ -1,4 +1,4 @@
-from time import sleep
+import time
 from logger_config import get_logger
 from homepage import clear_screen
 
@@ -14,7 +14,7 @@ def inventory_manager_menu(username, store_id, employee_id):
         print("4. View past restock lists")
         print("5. Remove a product from inventory")
         print("6. Add a product to inventory")
-        print("7. Mark restock list as delivered")
+        print("7. Receive Supplier Order")
         print("8. Logout")
 
         choice = input("\nPlease select an option (1-8): ").strip()
@@ -32,13 +32,13 @@ def inventory_manager_menu(username, store_id, employee_id):
             view_past_restock_lists(store_id)
 
         elif choice == "5":
-            remove_product(store_id)
+            remove_product(store_id, employee_id)
 
         elif choice == "6":
-            add_new_product(store_id)
+            add_new_product(store_id, employee_id)
 
         elif choice == "7":
-            mark_restock_list_delivered(store_id, employee_id)
+            receive_supplier_orders_menu(store_id, employee_id)
 
         elif choice == "8":
             print("\nLogging out...")
@@ -147,21 +147,96 @@ def add_new_product(store_id, employee_id):
     logger.info(f"Product {product_id} (quantity: {quantity}) added to inventory for store {store_id} by employee {employee_id}.")
     time.sleep(3)
 
-def mark_restock_list_delivered(store_id, employee_id):
-    print("\nMark Restock List as Delivered")
+def receive_supplier_orders_menu(store_id, employee_id):
+    while True:
+        clear_screen()
+        print("Receive Supplier Orders")
+        print("-----------------------------")
 
-    list_id = input("Enter Restock List ID: ").strip()
+        # TODO:
+        # Query supplier orders for this store that are incoming.
+        #
+        # display supplier orders with the status of:
+        # - delivered
+        #
+        # Suggested fields:
+        # - so_id
+        # - supplier_id
+        # - list_id
+        # - date_of_order
+        # - status
+        # - expected_delivery_date
+        # - tracking_number
+
+        print("\nOptions:")
+        print("1. Mark Supplier Order as Received")
+        print("2. Return to Inventory Manager Page")
+
+        choice = input("Please enter your choice (1-2): ").strip()
+
+        if choice == "1":
+            so_id = input("Enter Supplier Order ID: ").strip()
+            supplier_id = input("Enter Supplier ID: ").strip()
+            receive_supplier_order(so_id, supplier_id, store_id, employee_id)
+
+        elif choice == "2":
+            return
+
+        else:
+            print("Invalid choice. Please try again.")
+            time.sleep(2)
+
+
+def receive_supplier_order(so_id, supplier_id, store_id, employee_id):
+    clear_screen()
+    print(f"Receiving Supplier Order ({so_id}, {supplier_id})")
+    print("---------------------------------------------")
 
     # TODO:
-    # 1. Verify the restock list belongs to this store
-    # 2. Verify the status is not already 'delivered'
-    # 3. Fetch all products and quantities from restock_contains for this list
-    # 4. For each product:
-    #       - if product already exists in stocks for this store, increase quantity
+    # 1. Verify this supplier_order belongs to store_id
+    # 2. Verify the current status is 'delivered'
+    # 3. Fetch supplier_order info, including list_id if available
+    # 4. Fetch all rows from so_contains for this supplier order:
+    #       - prod_id
+    #       - quantity
+    #       - cost_at_purchase
+    #
+    # 5. For each item:
+    #       - if product exists in stocks for this store, increase quantity
     #       - otherwise insert a new row into stocks
-    # 5. Update restock_list status to 'delivered'
+    #       - update product.unit_price = round(cost_at_purchase * 1.15, 2)
+    #
+    # 6. Update supplier_order:
+    #       - status = 'received'
+    #       - received_date = current date
+    #
+    # 7. Call sync_restock_list_status(list_id, store_id)
 
-    print(f"Restock list {list_id} marked as delivered and inventory updated.")
-    logger.info(f"Restock list {list_id} marked as delivered for store {store_id} by employee {employee_id}.")
-    time.sleep(3)
+    # Replace this with the actual list_id that this supplier order belongs to.
+    list_id = None
+
+    sync_restock_list_status(list_id, store_id)
+
+    print(f"Supplier order ({so_id}, {supplier_id}) marked as received.")
+    logger.info(
+        f"Employee '{employee_id}' received supplier order ({so_id}, {supplier_id}) for store '{store_id}'."
+    )
+    time.sleep(2)
+
+
+def sync_restock_list_status(list_id, store_id):
+    # This needs supplier_order.list_id to exist for clean tracking.
+    if list_id is None:
+        return
+
+    # TODO:
+    # 1. Query all supplier_order rows tied to this list_id
+    # 2. Collect all their statuses
+    # 3. Suggested rules:
+    #       - if all are 'received' -> restock_list.status = 'delivered'
+    #       - if some are 'received' -> restock_list.status = 'partially_delivered'
+    #       - otherwise -> restock_list.status = 'ordered'
+    # 4. Update restock_list for this list_id
+
+    pass
 
