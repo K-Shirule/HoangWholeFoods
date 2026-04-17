@@ -1,1 +1,4 @@
 2026-04-17 13:05:48,302 | INFO | delivery_associate | Delivery associate '2' logged out successfully.
+2026-04-17 13:28:03,517 | INFO | floor_employee_menu | Floor employee '5' logged out successfully.
+2026-04-17 13:32:02,580 | INFO | floor_employee_menu | Floor employee '5' finalized in-store order '5' for store '2' (customer_id=1, total=$6.48).
+2026-04-17 13:32:07,506 | INFO | floor_employee_menu | Floor employee '5' logged out successfully.
