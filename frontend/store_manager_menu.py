@@ -1,10 +1,11 @@
 import time
-from homepage import clear_screen
+# from homepage import clear_screen
+from db_connection import get_connection
 from logger_config import get_logger
-from frontend.utils import clear_screen, print_load
-from create_supplier_orders import create_supplier_orders_for_restock_list
+from utils import clear_screen, print_load
+from create_supplier_orders import create_supplier_orders_from_restock_list
 
-logger = get_logger()
+logger = get_logger(__name__)
 
 
 def store_manager_page(store_id, e_id):
@@ -13,6 +14,16 @@ def store_manager_page(store_id, e_id):
         print("Welcome to the Store Manager Page")
         print("Here you can manage employees, approve restock requests, and view store activity.")
         #get store name from store_id
+
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT branch_name FROM store WHERE st_id = %s", (store_id,))
+        store = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        store_name = store["branch_name"] if store else "Unknown Store"
+
         print("\nStore Name: {store_name}")
         print("1. View Employees")
         print("2. View Pending Restock Lists")
@@ -67,6 +78,9 @@ def view_employees(store_id, e_id):
         elif choice == "2":
             view_past_employee_details(store_id)
 
+        elif choice == "3":
+            return
+
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
@@ -76,7 +90,36 @@ def view_current_employee_details(store_id, e_id):
         clear_screen()
         print(f"Viewing details for current employees: ")
 
-        # TODO: Query employees where store_id = store_id and current = TRUE
+        #Query employees where store_id = store_id and current = TRUE
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT e_id, first_name, last_name, email, phone,
+                   role, salary, start_date
+            FROM employee
+            WHERE st_id = %s AND is_current = TRUE
+            ORDER BY role, last_name
+            """,
+            (store_id,)
+        )
+        employees = cursor.fetchall()
+        cursor.close()
+        conn.close()
+ 
+        if not employees:
+            print("No current employees found.")
+        else:
+            for emp in employees:
+                print(
+                    f"  ID: {emp['e_id']}"
+                    f"  |  {emp['first_name']} {emp['last_name']}"
+                    f"  |  Role: {emp['role']}"
+                    f"  |  Email: {emp['email']}"
+                    f"  |  Phone: {emp['phone'] or 'N/A'}"
+                    f"  |  Salary: ${emp['salary'] or 0:,.2f}"
+                    f"  |  Start: {emp['start_date']}"
+                )
 
         print("\nOptions:")
         print("1. Mark Employee as Inactive")
@@ -89,8 +132,39 @@ def view_current_employee_details(store_id, e_id):
             #make sure that the entered employee_id is valid and currently active before proceeding
             print(f"\nMarking Employee {target_employee_id} as inactive...")
 
-            # TODO: Update employee is_current = FALSE, set end_date
-
+            #Update employee is_current = FALSE, set end_date
+            conn = get_connection()
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute(
+                """
+                SELECT e_id, first_name, last_name
+                FROM employee
+                WHERE e_id = %s AND st_id = %s AND is_current = TRUE
+                """,
+                (target_employee_id, store_id)
+            )
+            target = cursor.fetchone()
+ 
+            if not target:
+                print(f"No active employee with ID {target_employee_id} found for this store.")
+                cursor.close()
+                conn.close()
+                time.sleep(2)
+                continue
+ 
+            cursor.execute(
+                """
+                UPDATE employee
+                SET is_current = FALSE, end_date = CURDATE()
+                WHERE e_id = %s
+                """,
+                (target_employee_id,)
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
+ 
+            print(f"Employee {target['first_name']} {target['last_name']} marked as inactive.")
             logger.info(f"Employee '{target_employee_id}' marked inactive by manager '{e_id}'.")
             time.sleep(2)
 
@@ -104,34 +178,97 @@ def view_current_employee_details(store_id, e_id):
 def view_past_employee_details(store_id):
     clear_screen()
     print(f"Viewing details for past employees: ")
-    # TODO: Query employees where store_id = store_id and current = FALSE
+    #Query employees where store_id = store_id and current = FALSE
     #don't need to do any update/creation ops here just display past employee details
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT e_id, first_name, last_name, email, phone,
+               role, start_date, end_date
+        FROM employee
+        WHERE st_id = %s AND is_current = FALSE
+        ORDER BY end_date DESC
+        """,
+        (store_id,)
+    )
+    employees = cursor.fetchall()
+    cursor.close()
+    conn.close()
+ 
+    if not employees:
+        print("No past employees found.")
+    else:
+        for emp in employees:
+            print(
+                f"  ID: {emp['e_id']}"
+                f"  |  {emp['first_name']} {emp['last_name']}"
+                f"  |  Role: {emp['role']}"
+                f"  |  Start: {emp['start_date']}"
+                f"  |  End: {emp['end_date']}"
+            )
+ 
+    input("\nPress Enter to return...")
 
 def view_pending_restock_list(store_id, e_id):
     while True:
         clear_screen()
         print("Pending Restock Lists")
 
-        # TODO: Query pending restock list
+        #Query pending restock list
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT rl.list_id, rl.created_at,
+                   e.first_name, e.last_name,
+                   COUNT(rc.prod_id) AS item_count
+            FROM restock_list rl
+            JOIN employee e ON rl.created_by = e.e_id
+            LEFT JOIN restock_contains rc ON rl.list_id = rc.list_id
+            WHERE rl.store_id = %s AND rl.restock_status = 'pending'
+            GROUP BY rl.list_id, rl.created_at, e.first_name, e.last_name
+            ORDER BY rl.created_at DESC
+            """,
+            (store_id,)
+        )
+        lists = cursor.fetchall()
+        cursor.close()
+        conn.close()
+ 
+        if not lists:
+            print("No pending restock lists.")
+        else:
+            for rl in lists:
+                print(
+                    f"  List ID: {rl['list_id']}"
+                    f"  |  Created: {rl['created_at']}"
+                    f"  |  By: {rl['first_name']} {rl['last_name']}"
+                    f"  |  Items: {rl['item_count']}"
+                )
 
         print("\nOptions:")
-        print("1. Approve Restock List")
-        print("2. Deny/Cancel Restock List")
-        print("3. Return")
+        print("1. View List Details")
+        print("2. Approve Restock List")
+        print("3. Deny/Cancel Restock List")
+        print("4. Return")
 
-        choice = input("Please enter your choice (1-3): ").strip()
+        choice = input("Please enter your choice (1-4): ").strip()
 
         if choice == "1":
-            approve_restock_list(list_id, store_id, employee_id)
-            list_id = input("List Approved").strip()
-
+            list_id = input("Enter List ID to view: ").strip()
+            view_restock_list_details(list_id, store_id)
 
         elif choice == "2":
-            deny_restock_list(list_id, store_id, employee_id)
-            list_id = input("List Sent Back to Inventory Manager: ").strip()
-
+            list_id = input("Enter List ID to approve: ").strip()
+            approve_restock_list(list_id, store_id, e_id)
 
         elif choice == "3":
+            list_id = input("List Sent Back to Inventory Manager: ").strip()
+            deny_restock_list(list_id, store_id, e_id)
+
+        elif choice == "4":
             return
 
         else:
@@ -141,18 +278,78 @@ def view_pending_restock_list(store_id, e_id):
 def approve_restock_list(list_id, store_id, employee_id):
     print(f"\nApproving Restock List {list_id}...")
 
-    # TODO: Update status = 'approved', set approved_by and approved_at
-
-    create_supplier_orders_for_restock_list(list_id, store_id)
-    logger.info(f"Restock list '{list_id}' approved by '{employee_id}'.")
+    if(create_supplier_orders_from_restock_list(list_id, store_id)):
+        #Update status = 'approved', set approved_by and approved_at
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            UPDATE restock_list
+            SET restock_status = 'approved',
+                approved_by    = %s,
+                approved_at    = NOW()
+            WHERE list_id = %s
+            """,
+            (employee_id, list_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print(f"Restock list {list_id} approved.")
+        logger.info(f"Restock list '{list_id}' approved by '{employee_id}' for store '{store_id}'.")
+    else:
+        #Update status = 'denied'
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "UPDATE restock_list SET restock_status = 'denied' WHERE list_id = %s",
+            (list_id,)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print(f"Restock list {list_id} could not be approved and has been cancelled.")
+        logger.info(f"Restock list '{list_id}' denied by '{employee_id}' for store '{store_id}'.")
     time.sleep(2)
 
 def deny_restock_list(list_id, store_id, employee_id):
     print(f"\nDenying Restock List {list_id}...")
 
-    # TODO: Update status = 'cancelled' or 'denied'
+    #Update status = 'cancelled' or 'denied'
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT list_id, restock_status FROM restock_list "
+        "WHERE list_id = %s AND store_id = %s",
+        (list_id, store_id)
+    )
+    rl = cursor.fetchone()
+ 
+    if not rl:
+        print(f"Restock list {list_id} not found for this store.")
+        cursor.close()
+        conn.close()
+        time.sleep(2)
+        return
+ 
+    if rl["restock_status"] != "pending":
+        print(f"List {list_id} is already '{rl['restock_status']}' - cannot cancel.")
+        cursor.close()
+        conn.close()
+        time.sleep(2)
+        return
+ 
+    cursor.execute(
+        "UPDATE restock_list SET restock_status = 'cancelled' WHERE list_id = %s",
+        (list_id,)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+ 
+    print(f"Restock list {list_id} cancelled.")
 
-    logger.info(f"Restock list '{list_id}' denied by '{employee_id}'.")
+    logger.info(f"Restock list '{list_id}' denied/cancelled by '{employee_id}'.")
     time.sleep(2)
 
 def view_past_restock_lists(store_id):
@@ -160,7 +357,41 @@ def view_past_restock_lists(store_id):
         clear_screen()
         print("Past Restock Lists")
 
-        # TODO: Query delivered/cancelled lists
+        #Query delivered/cancelled lists
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT rl.list_id, rl.restock_status, rl.created_at, rl.approved_at,
+                   c.first_name AS creator_first, c.last_name AS creator_last,
+                   a.first_name AS approver_first, a.last_name AS approver_last
+            FROM restock_list rl
+            JOIN employee c ON rl.created_by = c.e_id
+            LEFT JOIN employee a ON rl.approved_by = a.e_id
+            WHERE rl.store_id = %s AND rl.restock_status != 'pending'
+            ORDER BY rl.created_at DESC
+            """,
+            (store_id,)
+        )
+        lists = cursor.fetchall()
+        cursor.close()
+        conn.close()
+ 
+        if not lists:
+            print("No past restock lists found.")
+        else:
+            for rl in lists:
+                approver = (
+                    f"{rl['approver_first']} {rl['approver_last']}"
+                    if rl["approver_first"] else "N/A"
+                )
+                print(
+                    f"  List ID: {rl['list_id']}"
+                    f"  |  Status: {rl['restock_status']}"
+                    f"  |  Created: {rl['created_at']}"
+                    f"  |  By: {rl['creator_first']} {rl['creator_last']}"
+                    f"  |  Approved by: {approver}"
+                )
 
         print("\nOptions:")
         print("1. View Details")
@@ -182,14 +413,112 @@ def view_past_restock_lists(store_id):
 def view_restock_list_details(list_id, store_id):
     clear_screen()
     print(f"Viewing Restock List {list_id}")
-    #TODO Query to print restock list details (products, quantities, status, timestamps, who created/approved)
+    #Query to print restock list details (products, quantities, status, timestamps, who created/approved)
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+ 
+    cursor.execute(
+        """
+        SELECT rl.list_id, rl.restock_status, rl.created_at, rl.approved_at,
+               c.first_name AS creator_first, c.last_name AS creator_last,
+               a.first_name AS approver_first, a.last_name AS approver_last
+        FROM restock_list rl
+        JOIN employee c ON rl.created_by = c.e_id
+        LEFT JOIN employee a ON rl.approved_by = a.e_id
+        WHERE rl.list_id = %s AND rl.store_id = %s
+        """,
+        (list_id, store_id)
+    )
+    rl = cursor.fetchone()
+ 
+    if not rl:
+        print(f"Restock list {list_id} not found for this store.")
+        cursor.close()
+        conn.close()
+        input("\nPress Enter to return...")
+        return
+ 
+    approver = (
+        f"{rl['approver_first']} {rl['approver_last']}"
+        if rl["approver_first"] else "N/A"
+    )
+    print(f"Restock List ID : {rl['list_id']}")
+    print(f"Status          : {rl['restock_status']}")
+    print(f"Created At      : {rl['created_at']}")
+    print(f"Created By      : {rl['creator_first']} {rl['creator_last']}")
+    print(f"Approved By     : {approver}  |  At: {rl['approved_at'] or 'N/A'}")
+    print("-----------------------------")
+    print("Products:")
+ 
+    cursor.execute(
+        """
+        SELECT p.prod_id, p.name, rc.quantity, p.unit_type, p.unit_price
+        FROM restock_contains rc
+        JOIN product p ON rc.prod_id = p.prod_id
+        WHERE rc.list_id = %s
+        ORDER BY p.name
+        """,
+        (list_id,)
+    )
+    items = cursor.fetchall()
+    cursor.close()
+    conn.close()
+ 
+    if not items:
+        print("  (no items)")
+    else:
+        total = 0.0
+        for item in items:
+            subtotal = float(item["unit_price"] or 0) * item["quantity"]
+            total += subtotal
+            print(
+                f"  Prod ID: {item['prod_id']}"
+                f"  |  {item['name']}"
+                f"  |  Qty: {item['quantity']} {item['unit_type'] or ''}"
+                f"  |  Unit Price: ${item['unit_price']:,.2f}"
+                f"  |  Subtotal: ${subtotal:,.2f}"
+            )
+        print(f"\n  Estimated Total: ${total:,.2f}")
+ 
+    input("\nPress Enter to return...")
 
 def view_store_orders(store_id):
     while True:
         clear_screen()
-        print("Store Orders")
+        print("Store Orders  (most recent 50)")
 
-        # TODO: Query orders for this store - show only breifly not all details
+        #Query orders for this store - show only breifly not all details
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT o.order_id, o.order_date, o.order_type,
+                   o.order_status, o.delivery_method, o.total_amount,
+                   COALESCE(CONCAT(c.first_name, ' ', c.last_name), 'Guest') AS customer_name
+            FROM orders o
+            LEFT JOIN customer c ON o.c_id = c.c_id
+            WHERE o.st_id = %s
+            ORDER BY o.order_date DESC
+            LIMIT 50
+            """,
+            (store_id,)
+        )
+        orders = cursor.fetchall()
+        cursor.close()
+        conn.close()
+ 
+        if not orders:
+            print("No orders found for this store.")
+        else:
+            for ord_ in orders:
+                print(
+                    f"  Order ID: {ord_['order_id']}"
+                    f"  |  {ord_['order_date']}"
+                    f"  |  Type: {ord_['order_type'] or 'N/A'}"
+                    f"  |  Status: {ord_['order_status']}"
+                    f"  |  Total: ${ord_['total_amount'] or 0:,.2f}"
+                    f"  |  Customer: {ord_['customer_name']}"
+                )
 
         print("\nOptions:")
         print("1. View Order Details")
@@ -212,14 +541,116 @@ def view_store_order_details(order_id, store_id):
     clear_screen()
     print(f"Viewing Order {order_id}")
 
-    # TODO: Show full order details
+    #Show full order details
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+ 
+    cursor.execute(
+        """
+        SELECT o.order_id, o.order_date, o.order_type,
+               o.order_status, o.delivery_method, o.total_amount,
+               COALESCE(CONCAT(c.first_name, ' ', c.last_name), 'Guest') AS customer_name,
+               c.email AS customer_email,
+               CONCAT(e.first_name, ' ', e.last_name) AS employee_name
+        FROM orders o
+        LEFT JOIN customer c ON o.c_id = c.c_id
+        LEFT JOIN employee e ON o.e_id = e.e_id
+        WHERE o.order_id = %s AND o.st_id = %s
+        """,
+        (order_id, store_id)
+    )
+    order = cursor.fetchone()
+ 
+    if not order:
+        print(f"Order {order_id} not found for this store.")
+        cursor.close()
+        conn.close()
+        input("\nPress Enter to return...")
+        return
+ 
+    print(f"Order ID    : {order['order_id']}")
+    print(f"Date        : {order['order_date']}")
+    print(f"Type        : {order['order_type']}")
+    print(f"Status      : {order['order_status']}")
+    print(f"Delivery    : {order['delivery_method'] or 'N/A'}")
+    print(f"Customer    : {order['customer_name']}  ({order['customer_email'] or 'N/A'})")
+    print(f"Handled by  : {order['employee_name'] or 'N/A'}")
+    print(f"Total       : ${order['total_amount'] or 0:,.2f}")
+    print("-----------------------------")
+    print("Items:")
+ 
+    cursor.execute(
+        """
+        SELECT oc.prod_id, p.name, oc.quantity,
+               oc.price_at_purchase,
+               (oc.quantity * oc.price_at_purchase) AS line_total
+        FROM order_contains oc
+        JOIN product p ON oc.prod_id = p.prod_id
+        WHERE oc.order_id = %s
+        """,
+        (order_id,)
+    )
+    items = cursor.fetchall()
+ 
+    cursor.execute(
+        "SELECT method, amount, payment_status, payment_time "
+        "FROM payments WHERE order_id = %s",
+        (order_id,)
+    )
+    payment = cursor.fetchone()
+    cursor.close()
+    conn.close()
+ 
+    for item in items:
+        print(
+            f"  Prod ID: {item['prod_id']}"
+            f"  |  {item['name']}"
+            f"  |  Qty: {item['quantity']}"
+            f"  |  Price: ${item['price_at_purchase']:,.2f}"
+            f"  |  Line Total: ${item['line_total']:,.2f}"
+        )
+ 
+    if payment:
+        print("-----------------------------")
+        print(
+            f"Payment  : {payment['method']}"
+            f"  |  ${payment['amount']:,.2f}"
+            f"  |  Status: {payment['payment_status']}"
+            f"  |  Time: {payment['payment_time']}"
+        )
 
     input("\nPress Enter to return...")
 
 def view_store_pin(store_id):
     print(f"Viewing Store PIN for Store {store_id}")
-    # TODO: Query and display store PIN details from DB
+    #Query and display store PIN details from DB
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT store_pin FROM store WHERE st_id = %s", (store_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+ 
+    if row:
+        print(f"Store PIN for Store {store_id}: {row['store_pin']}")
+    else:
+        print("Store not found.")
+ 
+    input("\nPress Enter to return...")
 
 def view_supplier_pin(store_id):
     print(f"Viewing Supplier PIN for Store {store_id}")
-    #TODO: Query and display supplier PIN details from DB
+    #Query and display supplier PIN details from DB
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT supplier_pin FROM store WHERE st_id = %s", (store_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+ 
+    if row:
+        print(f"Supplier PIN for Store {store_id}: {row['supplier_pin']}")
+    else:
+        print("Store not found.")
+ 
+    input("\nPress Enter to return...")

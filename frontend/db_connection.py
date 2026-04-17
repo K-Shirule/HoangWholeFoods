@@ -1,10 +1,16 @@
 import mysql.connector
+from mysql.connector import Error
 
-conn = mysql.connector.connect(
-    host="localhost:303",
-    user="root",
-    password="",
-    database="HoangWholeFoods"
-)
-
-cursor = conn.cursor(dictionary=True)
+def get_connection():
+    """Return a fresh MySQL connection. Caller is responsible for closing it."""
+    try:
+        conn = mysql.connector.connect(
+            host="localhost",
+            port=3306,
+            user="root",
+            password="",
+            database="HoangWholeFoods"
+        )
+        return conn
+    except Error as e:
+        raise RuntimeError(f"Database connection failed: {e}") from e
