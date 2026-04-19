@@ -1,6 +1,7 @@
 import time
 from utils import clear_screen
 from logger_config import get_logger
+from db_connector import db
 
 logger = get_logger()
 
@@ -45,19 +46,52 @@ def view_supplier_orders(supplier_id):
         print("Supplier Orders")
         print("-----------------------------")
 
-        # TODO:
-        # Query database for all supplier_order rows for this supplier_id
-        #
-        # Suggested fields to show:
-        # - so_id
-        # - date_of_order
-        # - total_amount
-        # - payment_method
-        # - status
-        # - expected_delivery_date
-        # - received_date
-        # - tracking_number
-        # - st_id
+        #show a list of all supplier orders this supplier
+        cursor = db.cursor(dictionary = True)
+        query = """
+            SELECT *
+            FROM supplier_order
+            WHERE supplier_id = %s
+            ORDER BY date_of_order DESC;
+            """
+        cursor.execute(query, (supplier_id))
+        orders = cursor.fetchall()
+        cursor.close()
+
+        if not orders:
+            print("No supplier orders found.")
+            input("\nPress Enter to return...")
+            return
+        
+        print("Your Supplier Orders: \n")
+        print(
+            f"| {'Supplier ID': <15}" \
+            f"| {'Supplier Order ID': <20}" \
+            f"| {'Date of Order': <15}" \
+            f"| {'Total Amount': <15}" \
+            f"| {'Payment Method': <15}" \
+            f"| {'Status': <12}" \
+            f"| {'Expected Delivery Date': <25}" \
+            f"| {'Received Date': <15}" \
+            f"| {'Tracking Number': <15}" \
+            f"| {'Store ID': <8}" \
+            f"| {'List ID': <8} |" 
+        )
+        print("-" * 90)
+        for order in orders:
+            print(
+                f"| {order['supplier_id']: <15}" \
+                f"| {order['so_id']: <20}" \
+                f"| {order['date_of_order'].strftime('%Y-%m-%d'): <15}" \
+                f"| ${order['total_amount']: <15.2f}" \
+                f"| {order['payment_method'] if order['payment_method'] else 'NULL': <15}" \
+                f"| {order['status'] if order['status'] else 'NULL': <12}" \
+                f"| {order['expected_delivery_date'].strftime('%Y-%m-%d') if order['expected_delivery_date'] else 'NULL': <25}" \
+                f"| {order['received_date'].strftime('%Y-%m-%d') if order['received_date'] else 'NULL': <15}" \
+                f"| {order['tracking_number'] if order['tracking_number'] else 'NULL': <15}" \
+                f"| {order['st_id'] if order['st_id'] is not None else 'NULL': <8}" \
+                f"| {order['list_id'] if order['list_id'] is not None else 'NULL': <8} |" 
+            )
 
         print("\nOptions:")
         print("1. View Supplier Order Details")
@@ -86,17 +120,40 @@ def view_supplier_order_details(so_id, supplier_id):
     print(f"Viewing Supplier Order ID: {so_id}")
     print("-----------------------------")
 
-    # TODO:
-    # Query database for supplier_order details using:
-    # - so_id
-    # - supplier_id
-    #
-    # Also query so_contains to show:
-    # - prod_id
-    # - quantity
-    # - cost_at_purchase
-    #
-    # Optionally join product table to display product names
+    #show the order that this supplier chooses to view in more detail
+    cursor = db.cursor(dictionary = True)
+    query = """
+        SELECT *
+        FROM so_contains
+        WHERE so_id = %s AND supplier_id = %s
+        ORDER BY so_id DESC;
+        """
+    cursor.execute(query, (so_id, supplier_id))
+    order_details = cursor.fetchall()
+    cursor.close()
+
+    if not order_details:
+        print("Order not found or access denied.")
+        input("\nPress Enter to return...")
+        return
+    
+    print(
+        f"| {'Supplier ID': <15}" \
+        f"| {'Supplier Order ID': <20}" \
+        f"| {'Product ID': <12}" \
+        f"| {'Quantity': <10}" \
+        f"| {'Cost at Purchase': <18} |" 
+    )
+    print("-" * 90)
+    
+    for detail in order_details:
+        print(
+            f"| {detail['supplier_id']: <15}" \
+            f"| {detail['so_id']: <20}" \
+            f"| {detail['prod_id']: <12}" \
+            f"| {detail['quantity'] if detail['quantity'] is not None else 'NULL': <10}" \
+            f"| ${detail['cost_at_purchase'] if detail['cost_at_purchase'] is not None else 'NULL': <18.2f} |"
+        )
 
     input("\nPress Enter to return...")
 
@@ -143,20 +200,19 @@ def update_supplier_order_status(so_id, supplier_id):
 
         elif new_status == "delivered":
             received_date = input("Enter received/delivery date (YYYY-MM-DD): ").strip()
-
-        # TODO:
-        # 1. Verify supplier_order belongs to this supplier_id
-        # 2. Update supplier_order.status = new_status
-        # 3. If shipped:
-        #       - update tracking_number
-        #       - update expected_delivery_date
-        # 4. If delivered:
-        #       - update received_date
-        #
-        # Note:
-        # This only updates supplier_order.
-        # Inventory should be updated later by the inventory manager
-        # when they confirm receipt.
+        
+        cursor = db.cursor()
+        query = """
+            UPDATE supplier_order
+            SET status = %s,
+                tracking_number = %s,
+                expected_delivery_date = %s,
+                received_date = %s
+            WHERE so_id = %s AND supplier_id = %s;
+            """
+        cursor.execute(query, (new_status, tracking_number, expected_delivery_date, received_date, so_id, supplier_id))
+        db.commit()     #save changes to supplier table
+        cursor.close()
 
         print(f"Supplier order {so_id} updated to status '{new_status}'.")
         logger.info(
