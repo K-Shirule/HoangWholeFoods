@@ -63,7 +63,7 @@ def view_supplier_orders(supplier_id):
             input("\nPress Enter to return...")
             return
         
-        print("Your Supplier Orders: \n")
+        print("Orders needed to be fulfilled by you \n")
         print(
             f"| {'Supplier ID': <15}" \
             f"| {'Supplier Order ID': <20}" \
@@ -201,6 +201,7 @@ def update_supplier_order_status(so_id, supplier_id):
         elif new_status == "delivered":
             received_date = input("Enter received/delivery date (YYYY-MM-DD): ").strip()
         
+        #update the supplier_order table with the new status and any additional info if applicable
         cursor = db.cursor()
         query = """
             UPDATE supplier_order
@@ -222,26 +223,53 @@ def update_supplier_order_status(so_id, supplier_id):
         return
 
 def view_supplied_products(supplier_id):
-    clear_screen()
-    print("Products You Supply")
-    print("-----------------------------")
+    while True:
+        clear_screen()
+        print("Products You Supply")
+        print("-----------------------------")
 
-    # TODO:
-    # Query database using supplies table for all products supplied by this supplier.
-    #
-    # Suggested join:
-    # supplies + product
-    #
-    # Suggested fields:
-    # - prod_id
-    # - name
-    # - description
-    # - unit_price
-    # - units
-    # - unit_type
-    # - category if desired
+        #show a list of all products that this supplier supplies
+        cursor = db.cursor(dictionary = True)
+        query = """
+            SELECT s.supplier_id, s.prod_id, p.name, p.description, p.unit_price, p.units, p.unit_type, p.category_id
+            FROM supplies s JOIN product p ON s.prod_id = p.prod_id
+            WHERE supplier_id = %s
+            ORDER BY prod_id DESC;
+            """
+        cursor.execute(query, (supplier_id))
+        supplied_products = cursor.fetchall()
+        cursor.close()
 
-    input("\nPress Enter to return...")
+        if not supplied_products:
+            print("You are not currently supplying any products.")
+            input("\nPress Enter to return...")
+            return
+        
+        print(
+            f"| {'Supplier ID': <15}" \
+            f"| {'Product ID': <12}" \
+            f"| {'Product Name': <20}" \
+            f"| {'Description': <30}" \
+            f"| {'Unit Price': <12}" \
+            f"| {'Units': <8}" \
+            f"| {'Unit Type': <12}" \
+            f"| {'Category ID': <12} |"
+        )
+        print("-" * 90)
+
+        for supply in supplied_products:
+            print(
+                f"| {supply['supplier_id']: <15}" \
+                f"| {supply['prod_id']: <12}" \
+                f"| {supply['name'][:20]: <20}" \
+                f"| {supply['description'][:30]: <30}" \
+                f"| ${supply['unit_price'] if supply['unit_price'] is not None else 'NULL': <12.2f}" \
+                f"| {supply['units'] if supply['units'] is not None else 'NULL': <8}" \
+                f"| {supply['unit_type'] if supply['unit_type'] else 'NULL': <12}" \
+                f"| {supply['category_id'] if supply['category_id'] is not None else 'NULL': <12} |"
+            )
+        
+        input("\nPress Enter to return...")
 
 def add_supplied_product(supplier_id):
     while True:
@@ -250,17 +278,38 @@ def add_supplied_product(supplier_id):
         print("-----------------------------")
 
         print("Existing Product Catalog:")
-        #query to show all the products that exist in the product catalog
+        #query to show all the products that currently supplied by any supplier so that they can choose to add an existing product if they want instead of creating a new one
+        cursor = db.cursor(dictionary = True)
+        query = """
+            SELECT prod_id, name, category_id, unit_price
+            FROM product
+            ORDER BY name ASC;
+            """
+        cursor.execute(query)
+        products = cursor.fetchall()
+        cursor.close()
+
+        if not products:
+            print("No products found in catalog yet")
+
+        print("Existing Products:")
+        print(
+            f"| {'Product ID': <12}" \
+            f"| {'Product Name': <20}" \
+            f"| {'Category ID': <12}" \
+            f"| {'Unit Price': <12} |"
+        )
+        print("-" * 90)
+
+        for product in products: 
+            print(
+                f"| {product['prod_id']: <12}" \
+                f"| {product['name'][:20]: <20}" \
+                f"| {product['category_id'] if product['category_id'] is not None else 'NULL': <12}" \
+                f"| ${product['unit_price'] if product['unit_price'] is not None else 'NULL': <12.2f} |"
+            )   
+            
         print("(Select a product to supply OR add a new one)\n")
-
-        # TODO:
-        # Query and display all products from product table
-        # Suggested fields:
-        # - prod_id
-        # - name
-        # - category
-        # - unit_price
-
         print("\nOptions:")
         print("1. Supply an Existing Product")
         print("2. Add a New Product to Catalog")
@@ -268,9 +317,6 @@ def add_supplied_product(supplier_id):
 
         choice = input("Please enter your choice (1-3): ").strip()
 
-        # -------------------------
-        # OPTION 1: EXISTING PRODUCT
-        # -------------------------
         if choice == "1":
             prod_id = input("Enter Product ID to supply: ").strip()
 
@@ -281,19 +327,52 @@ def add_supplied_product(supplier_id):
 
             prod_id = int(prod_id)
 
-            # TODO:
-            # 1. Verify prod_id exists in product table
-            # 2. Check if (supplier_id, prod_id) already exists in supplies
-            # if it does exist then let them know they already supply it
-            # 3. If not, insert into supplies table
+            #check if product id exists in the product table
+            cursor = db.cursor()
+            query = """
+                SELECT prod_id 
+                FROM product
+                WHERE prod_id = %s;
+                """
+            cursor.execute(query, (prod_id,))
+            result = cursor.fetchone()
+            cursor.close()
+
+            if not result:
+                print("Product ID does not exist.")
+                time.sleep(2)
+                continue
+            
+            #check if the product is already supplied by this supplier
+            cursor = db.cursor()
+            query = """
+                SELECT *
+                FROM supplies
+                WHERE supplier_id = %s AND prod_id = %s;
+                """
+            cursor.execute(query, (supplier_id, prod_id))
+            existing_supply = cursor.fetchone()
+            cursor.close()
+
+            if existing_supply:
+                print("You already supply this product.")
+                time.sleep(2)
+                continue
+
+            #add to supplies table if not already supplying
+            cursor = db.cursor()
+            query = """
+                INSERT INTO supplies (supplier_id, prod_id)
+                VALUES (%s, %s);
+                """
+            cursor.execute(query, (supplier_id, prod_id))
+            db.commit()     #save changes to supplies table
+            cursor.close()
 
             print(f"Product {prod_id} added to your supplied products.")
             logger.info(f"Supplier '{supplier_id}' added existing product '{prod_id}' to supplies.")
             time.sleep(2)
 
-        # -------------------------
-        # OPTION 2: NEW PRODUCT
-        # -------------------------
         elif choice == "2":
             print("\nEnter new product details:")
 
