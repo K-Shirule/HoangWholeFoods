@@ -1,11 +1,12 @@
 import time
 import bcrypt
 
-from frontend.auth import check_username
-from frontend.utils import clear_screen, print_load
-from frontend.product_page import view_product_catalog
-from frontend.logger_config import get_logger
-from frontend.db_connector import db
+from auth import check_username
+from utils import clear_screen, print_load
+from product_page import view_product_catalog
+from logger_config import get_logger
+from db_connector import db
+from auth import get_valid_phone, get_valid_email
 
 logger = get_logger(__name__)
 
@@ -31,7 +32,7 @@ def customer_page(customer_id, store_id):
         elif choice == '5':
             print_load("Logging out.", 2)
             logger.info(f"customer '{customer_id}' logged out successfully.")
-            from frontend.homepage import show_homepage
+            from homepage import show_homepage
             show_homepage()
             break
         else:
@@ -312,7 +313,7 @@ def manage_account_information(customer_id):
             logger.info(f"Customer '{customer_id}' updated their last name.")
         elif choice == '3':
             print("Please enter your new phone number: ")
-            new_phone_number = input().strip()
+            new_phone_number = get_valid_phone()
 
             #query to update phone number in database
             cursor = db.cursor(dictionary=True)
@@ -361,7 +362,7 @@ def manage_account_information(customer_id):
             logger.info(f"Customer '{customer_id}' updated their password.")
         elif choice == '4':
             print("Please enter your new email: ")
-            new_email = input().strip()
+            new_email = get_valid_email()
             check_username(new_email, "customer")
 
             #query to update email in database
