@@ -375,9 +375,7 @@ def add_supplied_product(supplier_id):
 
         elif choice == "2":
             print("\nEnter new product details:")
-
-            #show them the category table to pick from 
-
+            #prod_id = None   
             name = input("Product name: ").strip()
             description = input("Description: ").strip()
             category_id = input("Category ID: ").strip()
@@ -390,20 +388,35 @@ def add_supplied_product(supplier_id):
                 time.sleep(2)
                 continue
 
-            try:
+            try:    #validate price input
                 unit_price = float(unit_price)
+                units = int(units) if units.isdigit() else None
+                category_id = int(category_id)
             except ValueError:
-                print("Invalid price.")
+                print("Invalid numberic input.")
                 time.sleep(2)
                 continue
 
-            units = int(units) if units.isdigit() else None
-            category_id = int(category_id)
+            #insert new product into product table 
+            cursor = db.cursor()
+            query = """
+                INSERT INTO product (name, description, category_id, unit_price, units, unit_type)
+                VALUES (%s, %s, %s, %s, %s, %s);
+                """
+            cursor.execute(query, (name, description, category_id, unit_price, units, unit_type))  
+            db.commit()     #save changes to product table
+            new_prod_id = cursor.lastrowid      #get the prod_id of the newly row
+            cursor.close()
 
-            # TODO:
-            # 1. Insert into product table
-            # 2. Get new prod_id
-            # 3. Insert into supplies table (supplier_id, prod_id)
+            #link to this supplier in supplies table, new row to supppies table
+            cursor = db.cursor()
+            query = """
+                INSERT INTO supplies (supplier_id, prod_id, supply_price)
+                VALUES (%s, %s, %s);
+                """
+            cursor.execute(query, (supplier_id, new_prod_id, unit_price))
+            db.commit()
+            cursor.close()
 
             print(f"New product '{name}' added and linked to your supplies.")
             logger.info(f"Supplier '{supplier_id}' created new product '{name}' and added to supplies.")
@@ -417,18 +430,82 @@ def add_supplied_product(supplier_id):
             time.sleep(2)
 
 def remove_supplied_product(supplier_id):
-    clear_screen()
-    print("Remove Product You Supply")
-    print("-----------------------------")
-    
-    view_supplied_products(supplier_id)
+    while True:
+        clear_screen()
+        print("Remove Product You Supply")
+        print("-----------------------------")
 
-    product_id = input("Enter Product ID to remove: ").strip()
+        #show current supplied products
+        cursor = db.cursor(dictionary = True)
+        query = """
+            SELECT s.supplier_id, s.prod_id, p.name
+            FROM supplies s JOIN product p ON s.prod_id = p.prod_id
+            WHERE supplier_id = %s
+            ORDER BY prod_id DESC;
+            """
+        cursor.execute(query, (supplier_id))
+        supplied_products = cursor.fetchall()
+        cursor.close()
 
-    # TODO:
-    # 1. Verify (supplier_id, product_id) exists in supplies
-    # 2. Remove that row from supplies
+        if not supplied_products:
+            print("You are not currently supplying any products.")
+            input("\nPress Enter to return...")
+            return
+        
+        print("Your current supplied products:")
+        print(
+            f"| {'Product ID': <12}" \
+            f"| {'Product Name': <20} |"
+        )
+        print("-" * 90)
 
-    print(f"Product {product_id} removed from your supplied products list.")
-    logger.info(f"Supplier '{supplier_id}' removed product '{product_id}' from supplies.")
-    time.sleep(2)
+        for supply in supplied_products:
+            print(
+                f"| {supply['prod_id']: <12}" \
+                f"| {supply['name'][:20]: <20} |"
+            )
+
+        prod_id = input("Enter Product ID to remove: ").strip()
+
+        if not prod_id.isdigit():
+            print("Invalid Product ID.")
+            time.sleep(2)
+            continue
+
+        prod_id = int(prod_id)
+        
+        #check if this supplier actually supplies this product
+        cursor = db.cursor(dictionary = True)
+        query = """
+            SELECT *
+            FROM supplies
+            WHERE supplier_id = %s AND prod_id = %s;
+            """
+        cursor.execute(query, (supplier_id, prod_id))
+        existing = cursor.fetchone()
+        cursor.close()
+
+        if not existing:
+            print("You do not supply this product.")
+            time.sleep(2)
+            continue
+
+        confirmation = input(f"Are you sure you want to stop supplying product {prod_id}? (y/n): ").strip().lower()
+        if confirmation != 'y':
+            print("Operation cancelled.")
+            time.sleep(2)
+            continue
+
+        #proceed to remove the product from this supplier's supplied products list
+        cursor = db.cursor()
+        query = """
+            DELETE FROM supplies
+            WHERE supplier_id = %s AND prod_id = %s;
+            """
+        cursor.execute(query, (supplier_id, prod_id))
+        db.commit()     #save changes to supplies table
+        cursor.close()
+
+        print(f"Product {prod_id} removed from your supplied products list.")
+        logger.info(f"Supplier '{supplier_id}' removed product '{prod_id}' from supplies.")
+        time.sleep(2)
