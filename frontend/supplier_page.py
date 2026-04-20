@@ -49,12 +49,12 @@ def view_supplier_orders(supplier_id):
         #show a list of all supplier orders this supplier
         cursor = db.cursor(dictionary = True)
         query = """
-            SELECT *
+            SELECT supplier_id, so_id, date_of_order, total_amount, payment_method, status, expected_delivery_date, received_date, tracking_number, st_id, list_id
             FROM supplier_order
             WHERE supplier_id = %s
-            ORDER BY date_of_order DESC;
+            ORDER BY date_of_order DESC
             """
-        cursor.execute(query, (supplier_id))
+        cursor.execute(query, (supplier_id,))
         orders = cursor.fetchall()
         cursor.close()
 
@@ -123,10 +123,10 @@ def view_supplier_order_details(so_id, supplier_id):
     #show the order that this supplier chooses to view in more detail
     cursor = db.cursor(dictionary = True)
     query = """
-        SELECT *
+        SELECT supplier_id, so_id, prod_id, quantity, cost_at_purchase
         FROM so_contains
         WHERE so_id = %s AND supplier_id = %s
-        ORDER BY so_id DESC;
+        ORDER BY so_id DESC
         """
     cursor.execute(query, (so_id, supplier_id))
     order_details = cursor.fetchall()
@@ -209,7 +209,7 @@ def update_supplier_order_status(so_id, supplier_id):
                 tracking_number = %s,
                 expected_delivery_date = %s,
                 received_date = %s
-            WHERE so_id = %s AND supplier_id = %s;
+            WHERE so_id = %s AND supplier_id = %s
             """
         cursor.execute(query, (new_status, tracking_number, expected_delivery_date, received_date, so_id, supplier_id))
         db.commit()     #save changes to supplier table
@@ -234,9 +234,9 @@ def view_supplied_products(supplier_id):
             SELECT s.supplier_id, s.prod_id, p.name, p.description, p.unit_price, p.units, p.unit_type, p.category_id
             FROM supplies s JOIN product p ON s.prod_id = p.prod_id
             WHERE supplier_id = %s
-            ORDER BY prod_id DESC;
+            ORDER BY prod_id DESC
             """
-        cursor.execute(query, (supplier_id))
+        cursor.execute(query, (supplier_id,))
         supplied_products = cursor.fetchall()
         cursor.close()
 
@@ -283,7 +283,7 @@ def add_supplied_product(supplier_id):
         query = """
             SELECT prod_id, name, category_id, unit_price
             FROM product
-            ORDER BY name ASC;
+            ORDER BY name ASC
             """
         cursor.execute(query)
         products = cursor.fetchall()
@@ -332,7 +332,7 @@ def add_supplied_product(supplier_id):
             query = """
                 SELECT prod_id 
                 FROM product
-                WHERE prod_id = %s;
+                WHERE prod_id = %s
                 """
             cursor.execute(query, (prod_id,))
             result = cursor.fetchone()
@@ -346,9 +346,9 @@ def add_supplied_product(supplier_id):
             #check if the product is already supplied by this supplier
             cursor = db.cursor()
             query = """
-                SELECT *
+                SELECT supplier_id, prod_id
                 FROM supplies
-                WHERE supplier_id = %s AND prod_id = %s;
+                WHERE supplier_id = %s AND prod_id = %s
                 """
             cursor.execute(query, (supplier_id, prod_id))
             existing_supply = cursor.fetchone()
@@ -441,9 +441,9 @@ def remove_supplied_product(supplier_id):
             SELECT s.supplier_id, s.prod_id, p.name
             FROM supplies s JOIN product p ON s.prod_id = p.prod_id
             WHERE supplier_id = %s
-            ORDER BY prod_id DESC;
+            ORDER BY prod_id DESC
             """
-        cursor.execute(query, (supplier_id))
+        cursor.execute(query, (supplier_id,))
         supplied_products = cursor.fetchall()
         cursor.close()
 
@@ -477,9 +477,9 @@ def remove_supplied_product(supplier_id):
         #check if this supplier actually supplies this product
         cursor = db.cursor(dictionary = True)
         query = """
-            SELECT *
+            SELECT supplier_id, prod_id, supply_price
             FROM supplies
-            WHERE supplier_id = %s AND prod_id = %s;
+            WHERE supplier_id = %s AND prod_id = %s
             """
         cursor.execute(query, (supplier_id, prod_id))
         existing = cursor.fetchone()
@@ -500,7 +500,7 @@ def remove_supplied_product(supplier_id):
         cursor = db.cursor()
         query = """
             DELETE FROM supplies
-            WHERE supplier_id = %s AND prod_id = %s;
+            WHERE supplier_id = %s AND prod_id = %s
             """
         cursor.execute(query, (supplier_id, prod_id))
         db.commit()     #save changes to supplies table
