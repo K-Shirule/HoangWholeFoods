@@ -1,6 +1,7 @@
 import time
 import bcrypt
 from db_connector import db
+from customer_page import customer_page
 from logger_config import get_logger
 from utils import clear_screen, print_load
 import re
