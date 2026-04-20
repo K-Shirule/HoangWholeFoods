@@ -14,7 +14,10 @@ def supplier_page(supplier_id):
         print("2. View Products You Supply")
         print("3. Add Product You Supply")
         print("4. Remove Product You Supply")
-        print("5. Logout")
+        print("5. View Pending Supplier Orders")
+        print("6. View Competitive Products")
+        print("7. View Total Sales from Your Products")
+        print("8. Logout")
 
         choice = input("Please enter your choice (1-5): ").strip()
 
@@ -31,6 +34,15 @@ def supplier_page(supplier_id):
             remove_supplied_product(supplier_id)
 
         elif choice == "5":
+            view_pending_supplier_orders(supplier_id)
+
+        elif choice == "6":
+            view_competitve_products(supplier_id)
+
+        elif choice == "7":
+            view_total_sales_by_products(supplier_id)
+
+        elif choice == "8":
             print("Logging out...")
             logger.info(f"Supplier '{supplier_id}' logged out successfully.")
             time.sleep(2)
@@ -509,3 +521,125 @@ def remove_supplied_product(supplier_id):
         print(f"Product {prod_id} removed from your supplied products list.")
         logger.info(f"Supplier '{supplier_id}' removed product '{prod_id}' from supplies.")
         time.sleep(2)
+
+def view_pending_supplier_orders(supplier_id):
+    while True:
+        clear_screen()
+        print("Pending Supplier Orders")
+        print("-----------------------------")
+        
+        #show all supplier orders that are not yet marked as delivered for this supplier
+        cursor = db.cursor(dictionary = True)
+        query = """
+            SELECT sp.supplier_name, COUNT (so.so_id) AS pending_orders
+            FROM supplier sp JOIN supplier_order so ON sp.supplier_id = so.supplier_id
+            WHERE sp.supplier_id = %s AND so.status = 'Pending'
+            GROUP BY sp.supplier_name
+            """
+        cursor.execute(query, (supplier_id,))
+        pending_orders = cursor.fetchall()
+        cursor.close()
+
+        if not pending_orders:
+            print("No pending supplier orders found.")
+            input("\nPress Enter to return...")
+            return
+        
+        print(
+            f"| {'Supplier Name': <20}" \
+            f"| {'Pending Orders': <15} |"
+        )
+        print("-" * 90)
+
+        for order in pending_orders:
+            print(
+                f"| {order['supplier_name'][:20]: <20}" \
+                f"| {order['pending_orders'] if order['pending_orders'] is not None else '0': <15} |"
+            )
+        
+        logger.info(f"Supplier '{supplier_id}' viewed pending supplier orders.")
+        input("\nPress Enter to return...")
+
+def view_competitve_products(supplier_id):
+    while True:
+        clear_screen()
+        print("Competitive Products")
+        print("-----------------------------")
+
+        #show all products that this supplier supplies and also supplied by other suppliers
+        cursor = db.cursor(dictionary = True)
+        query = """
+            SELECT p.name, COUNT(DISTINCT s.supplier_id) AS num_suppliers
+            FROM supplies s JOIN product p ON s.prod_id = p.prod_id
+            WHERE s.prod_id IN (
+                SELECT prod_id
+                FROM supplies
+                WHERE supplier_id = %s
+            )
+            GROUP BY p.name
+            HAVING COUNT(DISTINCT s.supplier_id) > 1
+            ORDER BY num_suppliers DESC
+            """
+        cursor.execute(query, (supplier_id,))
+        competitive_products = cursor.fetchall()
+        cursor.close()
+
+        if not competitive_products:
+            print("No competitive products found (products you supply that are also supplied by other suppliers)")
+            input("\nPress Enter to return...")
+            return
+        
+        print(
+            f"| {'Product Name': <20}" \
+            f"| {'Number of Suppliers': <20} |"
+        )
+        print("-" * 90)
+
+        for product in competitive_products:
+            print(
+                f"| {product['name'][:20]: <20}" \
+                f"| {product['num_suppliers'] if product['num_suppliers'] is not None else '0': <20} |"
+            )
+
+        logger.info(f"Supplier '{supplier_id}' viewed competitive products.")
+        input("\nPress Enter to return...")
+    
+def view_total_sales_by_products(supplier_id):
+    while True:
+        clear_screen()
+        print("Total Sales from Your Products")
+        print("-----------------------------")
+
+        #show total sales amount from products supplied by this supplier
+        cursor = db.cursor(dictionary = True)
+        query = """
+            SELECT p.name, SUM(so.quantity * s.supplier_price) AS total_sales
+            FROM so_contains so JOIN supplies s ON so.prod_id = s.prod_id
+            JOIN product p ON s.prod_id = p.prod_id
+            WHERE s.supplier_id = %s
+            GROUP BY p.name
+            ORDER BY total_sales DESC
+            """
+        cursor.execute(query, (supplier_id,))
+        sales_data = cursor.fetchall()
+        cursor.close()
+
+        if not sales_data:
+            print("No sales data found for your products.")
+            input("\nPress Enter to return...")
+            return
+        
+        print(
+            f"| {'Product Name': <20}" \
+            f"| {'Total Sales': <15} |"
+        )
+        print("-" * 90)
+
+        for data in sales_data:
+            print(
+                f"| {data['name'][:20]: <20}" \
+                f"| ${data['total_sales'] if data['total_sales'] is not None else '0.00': <15.2f} |"
+            )
+
+        logger.info(f"Supplier '{supplier_id}' viewed total sales by products.")
+        input("\nPress Enter to return...")
