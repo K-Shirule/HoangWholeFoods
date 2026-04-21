@@ -1,7 +1,6 @@
 import time
 import bcrypt
 from db_connector import db
-from customer_page import customer_page
 from logger_config import get_logger
 from utils import clear_screen, print_load
 import re
@@ -32,7 +31,7 @@ def login_user(role):
 
             if role == 'customer':
                 from customer_page import customer_page
-                customer_page(user_id, username)
+                customer_page(user_id)
 
             elif role == 'supplier':
                 from supplier_page import supplier_page
@@ -51,8 +50,8 @@ def login_user(role):
                         store_manager_page(store_id, employee_id, username)
 
                     elif employee_role == "inventory_manager":
-                        from inventory_manager_page import inventory_manager_menu
-                        inventory_manager_menu(username, store_id, employee_id)
+                        from inventory_manager_menu import inventory_manager_menu
+                        inventory_manager_menu(store_id, employee_id)
 
                     elif employee_role == "floor_employee":
                         from floor_employee_page import floor_employee_page
@@ -104,11 +103,12 @@ def register_user(role):
         row = cursor.fetchone()
 
         if row:
-            st_id = row["st_id"]
+            store_id = row["st_id"]
             print("\nStore pin accepted.")
         else:
             print("\nInvalid store pin.")
             logger.warning("Employee attempted to register with invalid store pin.")
+            print_load("Returning to homepage", 2)
             cursor.close()
             return
 

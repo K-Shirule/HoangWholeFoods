@@ -1,10 +1,9 @@
 # main.py
 
-import os
 import sys
 
 from auth import login_user, register_user
-from utils import clear_screen
+from utils import clear_screen, print_load
 from db_connector import db
 
 def pause():

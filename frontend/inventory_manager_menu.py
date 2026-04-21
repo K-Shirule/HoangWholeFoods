@@ -1,25 +1,28 @@
 import time
 
-from db_connection import conn, cursor
-from homepage import clear_screen
+from db_connector import db
 from logger_config import get_logger
+from utils import print_load, clear_screen
 
 logger = get_logger(__name__)
 
 
 def _fetch_all(query, params=None):
+    cursor = db.cursor(dictionary=True)
     cursor.execute(query, params or ())
     return cursor.fetchall()
 
 
 def _fetch_one(query, params=None):
+    cursor = db.cursor(dictionary=True)
     cursor.execute(query, params or ())
     return cursor.fetchone()
 
 
 def _execute(query, params=None):
+    cursor = db.cursor(dictionary=True)
     cursor.execute(query, params or ())
-    conn.commit()
+    db.commit()
 
 
 def _print_inventory_rows(rows):
@@ -34,12 +37,12 @@ def _print_inventory_rows(rows):
             f"{row['product_name']} | "
             f"Category: {row['category_name']} | "
             f"Price: ${row['unit_price']:.2f} | "
-            f"Quantity: {row['quantity']} | "
+            f"Stock: {row['quantity']} | "
             f"Size: {size_text}"
         )
 
 
-def inventory_manager_menu(username, store_id, employee_id):
+def inventory_manager_menu(store_id, employee_id):
     while True:
         clear_screen()
         print("\nInventory Manager Menu:")
@@ -50,7 +53,8 @@ def inventory_manager_menu(username, store_id, employee_id):
         print("5. Remove a product from inventory")
         print("6. Add a product to inventory")
         print("7. Receive Supplier Order")
-        print("8. Logout")
+        print("8. View Product Catalog")
+        print("9. Logout")
 
         choice = input("\nPlease select an option (1-8): ").strip()
 
@@ -76,9 +80,11 @@ def inventory_manager_menu(username, store_id, employee_id):
             receive_supplier_orders_menu(store_id, employee_id)
 
         elif choice == "8":
-            print("\nLogging out...")
-            break
+            view_products()
 
+        elif choice == "9":
+            print_load("Goodbye",1.2)
+            break
         else:
             print("\nInvalid option. Please try again.")
 
@@ -148,12 +154,17 @@ def view_supplier_products(store_id, employee_id):
                     f"Supplier Price: ${row['supplier_price']:.2f}"
                 )
 
+        
         print("\n1. Add a product to restock list")
         print("2. Return to the previous menu.")
 
         choice = input("Please select an option (1-2): ").strip()
 
         if choice == "1":
+            if(not rows):
+                print("No Supplier Products")
+                time.sleep(2)
+                return
             product_id = input("Enter Product ID: ").strip()
             quantity = input("Enter quantity: ").strip()
 
@@ -168,6 +179,7 @@ def view_supplier_products(store_id, employee_id):
 
 
 def add_product_to_restock_list(product_id, quantity, store_id, employee_id):
+    cursor = db.cursor(dictionary=True)
     print("\nAdding product to restock list...")
 
     if not product_id.isdigit() or not quantity.isdigit() or int(quantity) <= 0:
@@ -286,6 +298,10 @@ def view_restock_list(store_id, employee_id):
         choice = input("\nPlease select an option (1-2): ").strip()
 
         if choice == "1":
+            if(not rows):
+                print("No Products in Restock List")
+                time.sleep(2)
+                return
             product_id = input("Enter Product ID: ").strip()
             remove_product_from_restock_list(product_id, store_id, employee_id)
         elif choice == "2":
@@ -367,6 +383,20 @@ def remove_product(store_id, employee_id):
         time.sleep(2)
         return
 
+    existing_stock = _fetch_one(
+        """
+        SELECT quantity
+        FROM stocks
+        WHERE store_id = %s AND prod_id = %s
+        """,
+        (store_id, int(product_id)),
+    )
+
+    if not existing_stock:
+        print("That product does not exist in this store's inventory.")
+        time.sleep(2)
+        return
+
     _execute(
         """
         DELETE FROM stocks
@@ -381,7 +411,6 @@ def remove_product(store_id, employee_id):
         f"{store_id} by employee {employee_id}."
     )
     time.sleep(2)
-
 
 def add_new_product(store_id, employee_id):
     print("\nAdd product to inventory")
@@ -483,6 +512,7 @@ def receive_supplier_orders_menu(store_id, employee_id):
 
 def receive_supplier_order(so_id, supplier_id, store_id, employee_id):
     clear_screen()
+    cursor = db.cursor(dictionary=True)
     print(f"Receiving Supplier Order ({so_id}, {supplier_id})")
     print("---------------------------------------------")
 
@@ -567,9 +597,9 @@ def receive_supplier_order(so_id, supplier_id, store_id, employee_id):
             """,
             (int(so_id), int(supplier_id)),
         )
-        conn.commit()
+        db.commit()
     except Exception:
-        conn.rollback()
+        db.rollback()
         logger.exception(
             "Failed to receive supplier order (%s, %s) for store %s.",
             so_id,
@@ -622,3 +652,40 @@ def sync_restock_list_status(list_id, store_id):
         """,
         (next_status, list_id, store_id),
     )
+
+def view_products():
+    clear_screen()
+    print("\nProduct Catalog:\n")
+
+    rows = _fetch_all(
+        """
+        SELECT
+            p.prod_id,
+            p.name AS product_name,
+            p.description,
+            c.name AS category_name,
+            p.unit_price,
+            p.units,
+            p.unit_type
+        FROM product AS p
+        JOIN category AS c
+            ON p.category_id = c.cat_id
+        ORDER BY p.name
+        """
+    )
+
+    if not rows:
+        print("No products found in catalog.")
+    else:
+        for row in rows:
+            size_text = f"{row['units'] or 'n/a'} {row['unit_type'] or ''}".strip()
+            print(
+                f"Product ID: {row['prod_id']} | "
+                f"{row['product_name']} | "
+                f"Category: {row['category_name']} | "
+                f"Price: ${row['unit_price']:.2f} | "
+                f"Size: {size_text} | "
+                f"Description: {row['description']}"
+            )
+
+    input("\nPress Enter to return...")
