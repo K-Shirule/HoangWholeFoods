@@ -1,5 +1,0 @@
-2026-04-19 17:21:20,455 | ERROR | auth | Registration failed for customer 'hrithik@sjsu.edu': '>' not supported between instances of 'str' and 'int'
-2026-04-19 17:24:43,677 | ERROR | auth | Registration failed for customer 'hhe@gmail.com': '>' not supported between instances of 'str' and 'int'
-2026-04-19 17:25:39,379 | ERROR | auth | Registration failed for customer 'hh@gasd.com': '>' not supported between instances of 'str' and 'int'
-2026-04-19 17:27:06,990 | ERROR | auth | Registration failed for customer 'hhia@gmal.com': '>' not supported between instances of 'str' and 'int'
-2026-04-19 17:30:04,352 | ERROR | auth | Registration failed for customer 'jaofelix@gmail.com': '>' not supported between instances of 'str' and 'int'
