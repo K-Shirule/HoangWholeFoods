@@ -220,7 +220,7 @@ CREATE TABLE restock_contains (
 CREATE TABLE supplier_order (
     so_id INT NOT NULL,
     supplier_id INT NOT NULL,
-    date_of_order DATE NOT NULL default current_timestamp,
+    date_of_order TIMESTAMP NOT NULL default current_timestamp,
     total_amount DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50),
     status VARCHAR(20),
@@ -233,7 +233,7 @@ CREATE TABLE supplier_order (
     FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id)
         ON DELETE CASCADE,
     FOREIGN KEY (st_id) REFERENCES store(st_id)
-        ON DELETE SET NULL
+        ON DELETE SET NULL,
     FOREIGN KEY (list_id) REFERENCES restock_list(list_id)
 );
 
