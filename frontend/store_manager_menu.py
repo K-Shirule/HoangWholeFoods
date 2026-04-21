@@ -31,7 +31,8 @@ def store_manager_page(store_id, e_id):
         print("4. View Store Orders")
         print("5. View Store Pin")
         print("6. View Supplier Pin")
-        print("7. Logout")
+        print("7. Change Employee Salary")
+        print("8. Logout")
 
         choice = input("Please enter your choice (1-7): ").strip()
 
@@ -54,7 +55,11 @@ def store_manager_page(store_id, e_id):
             view_supplier_pin(store_id)
 
         elif choice == "7":
+            change_employee_salary(store_id, e_id)
+
+        elif choice == "8":
             print("Logging out...")
+            logger.info(f"Store manager '{e_id}' logged out.")
             time.sleep(2)
             break
 
@@ -620,6 +625,103 @@ def view_store_order_details(order_id, store_id):
         )
 
     input("\nPress Enter to return...")
+
+def change_employee_salary(store_id, manager_e_id):
+    while True:
+        clear_screen()
+        print("Change Employee Salary")
+ 
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT e_id, first_name, last_name, role, salary
+            FROM employee
+            WHERE st_id = %s
+              AND is_current = TRUE
+              AND role != 'store_manager'
+            ORDER BY role, last_name
+            """,
+            (store_id,)
+        )
+        employees = cursor.fetchall()
+        cursor.close()
+        conn.close()
+ 
+        if not employees:
+            print("No eligible employees found.")
+            input("\nPress Enter to return...")
+            return
+ 
+        for emp in employees:
+            print(
+                f"  ID: {emp['e_id']}"
+                f"  |  {emp['first_name']} {emp['last_name']}"
+                f"  |  Role: {emp['role']}"
+                f"  |  Current Salary: ${emp['salary'] or 0:,.2f}"
+            )
+ 
+        print("\nEnter Employee ID to update (or press Enter to cancel): ", end="")
+        target_id = input().strip()
+        if not target_id:
+            return
+ 
+        # Verify the employee belongs to this store, is active, and is not a store manager
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT e_id, first_name, last_name, role, salary
+            FROM employee
+            WHERE e_id = %s
+              AND st_id = %s
+              AND is_current = TRUE
+              AND role != 'store_manager'
+            """,
+            (target_id, store_id)
+        )
+        target = cursor.fetchone()
+        cursor.close()
+        conn.close()
+ 
+        if not target:
+            print("Employee not found, not active, or you cannot change a store manager's salary.")
+            time.sleep(2)
+            continue
+ 
+        print(
+            f"\n{target['first_name']} {target['last_name']}"
+            f" — current salary: ${target['salary'] or 0:,.2f}"
+        )
+        new_salary = input("Enter new salary (or press Enter to cancel): ").strip()
+        if not new_salary:
+            continue
+ 
+        try:
+            new_salary = float(new_salary)
+            if new_salary < 0:
+                raise ValueError
+        except ValueError:
+            print("Invalid salary. Please enter a positive number.")
+            time.sleep(2)
+            continue
+ 
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "UPDATE employee SET salary = %s WHERE e_id = %s",
+            (new_salary, target_id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+ 
+        print(f"Salary updated to ${new_salary:,.2f} for {target['first_name']} {target['last_name']}.")
+        logger.info(
+            f"Manager '{manager_e_id}' changed salary of employee '{target_id}' "
+            f"from ${target['salary'] or 0:.2f} to ${new_salary:.2f} in store '{store_id}'."
+        )
+        time.sleep(2)
 
 def view_store_pin(store_id):
     print(f"Viewing Store PIN for Store {store_id}")
