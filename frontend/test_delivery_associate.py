@@ -1,0 +1,2 @@
+from delivery_associate import delivery_associate_page
+delivery_associate_page(store_id=1, employee_id=2)
