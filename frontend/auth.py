@@ -46,20 +46,20 @@ def login_user(role):
                     employee_role = employee_info["role"]
 
                     if employee_role == "store_manager":
-                        from store_manager_page import store_manager_page
-                        store_manager_page(store_id, employee_id, username)
+                        from store_manager_menu import store_manager_page
+                        store_manager_page(store_id, employee_id)
 
                     elif employee_role == "inventory_manager":
                         from inventory_manager_menu import inventory_manager_menu
                         inventory_manager_menu(store_id, employee_id)
 
                     elif employee_role == "floor_employee":
-                        from floor_employee_page import floor_employee_page
-                        floor_employee_page(store_id, employee_id, username)
+                        from floor_employee_menu import floor_employee_page
+                        floor_employee_page(store_id, employee_id)
 
                     elif employee_role == "delivery_associate":
-                        from delivery_associate_page import delivery_associate_page
-                        delivery_associate_page(store_id, employee_id, username)
+                        from delivery_associate import delivery_associate_page
+                        delivery_associate_page(store_id, employee_id)
 
                     else:
                         print("\nUnknown employee role.")
@@ -78,7 +78,6 @@ def login_user(role):
         time.sleep(3)
         logger.warning(f"{role} '{username}' - username not found in database.")
         return
-
 
 def register_user(role):
     clear_screen()
@@ -257,7 +256,6 @@ def register_user(role):
     finally:
         cursor.close()
 
-
 def check_username(username, role):
     cursor = db.cursor(dictionary=True)
 
@@ -283,7 +281,6 @@ def check_username(username, role):
 
     finally:
         cursor.close()
-
 
 def check_password(username, password, role):
     cursor = db.cursor(dictionary=True)
@@ -316,7 +313,6 @@ def check_password(username, password, role):
     finally:
         cursor.close()
 
-
 def get_user_id(username, role):
     cursor = db.cursor(dictionary=True)
 
@@ -347,7 +343,6 @@ def get_user_id(username, role):
 
     finally:
         cursor.close()
-
 
 def get_employee_info(username):
     cursor = db.cursor(dictionary=True)

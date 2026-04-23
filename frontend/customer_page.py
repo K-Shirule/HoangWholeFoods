@@ -848,7 +848,7 @@ def checkout(customer_id, cart_id):
                 order_id,
                 e_id
             )
-            VALUES (NULL, %s, 'In-Progress', %s, NULL)
+            VALUES (NULL, %s, 'pending', %s, NULL)
             """,
             (delivery_address, order_id)
         )

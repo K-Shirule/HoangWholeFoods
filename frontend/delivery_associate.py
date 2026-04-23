@@ -1,12 +1,44 @@
-# ALTER TABLE delivery_record MODIFY e_id INT NULL;
-# i added this into queries since claim flow requires pending deliveries to have no associate yet
-
 import time
-from db_connection import get_connection
+from db_connector import db
 from utils import clear_screen
 from logger_config import get_logger
 
 logger = get_logger(__name__)
+
+
+def get_delivery_record(delivery_id, store_id, employee_id=None):
+    """
+    Fetch a delivery and confirm it belongs to the given store.
+    If employee_id is provided, also confirm it belongs to that employee.
+    Returns a dictionary row or None.
+    """
+    cursor = db.cursor(dictionary=True)
+
+    query = """
+        SELECT dr.delivery_id, dr.delivery_status, dr.delivered_to, dr.delivered_at,
+               dr.e_id,
+               o.order_id, o.order_date, o.order_type, o.order_status,
+               o.total_amount, o.delivery_method,
+               COALESCE(CONCAT(c.first_name, ' ', c.last_name), 'Guest') AS customer_name,
+               c.email AS customer_email,
+               c.phone AS customer_phone
+        FROM delivery_record dr
+        JOIN orders o ON dr.order_id = o.order_id
+        LEFT JOIN customer c ON o.c_id = c.c_id
+        WHERE dr.delivery_id = %s
+          AND o.st_id = %s
+    """
+    params = [delivery_id, store_id]
+
+    if employee_id is not None:
+        query += " AND dr.e_id = %s"
+        params.append(employee_id)
+
+    cursor.execute(query, tuple(params))
+    record = cursor.fetchone()
+
+    cursor.close()
+    return record
 
 
 def delivery_associate_page(store_id, employee_id):
@@ -50,21 +82,7 @@ def view_pending_deliveries(store_id):
     print("Pending Deliveries")
     print("-----------------------------")
 
-    # Query database for pending deliveries for this store.
-    #
-    # Suggested logic:
-    # - delivery_record.delivery_status = 'pending'
-    # - delivery_record.e_id IS NULL
-    # - orders.st_id = store_id
-    #
-    # Suggested fields to show:
-    # - delivery_id
-    # - order_id
-    # - delivered_to
-    # - order_date
-    # - total_amount
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    cursor = db.cursor(dictionary=True)
     cursor.execute(
         """
         SELECT dr.delivery_id, dr.delivered_to, dr.delivery_status,
@@ -82,8 +100,7 @@ def view_pending_deliveries(store_id):
     )
     deliveries = cursor.fetchall()
     cursor.close()
-    conn.close()
- 
+
     if not deliveries:
         print("No pending deliveries at this time.")
     else:
@@ -104,12 +121,9 @@ def claim_delivery(store_id, employee_id):
     clear_screen()
     print("Claim a Delivery")
     print("-----------------------------")
-
-    # Show all pending deliveries for this store first
-    # so the employee can choose one to claim
     print("Unclaimed deliveries for your store:\n")
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+
+    cursor = db.cursor(dictionary=True)
     cursor.execute(
         """
         SELECT dr.delivery_id, dr.delivered_to,
@@ -125,13 +139,12 @@ def claim_delivery(store_id, employee_id):
     )
     deliveries = cursor.fetchall()
     cursor.close()
-    conn.close()
- 
+
     if not deliveries:
         print("No unclaimed deliveries available.")
         time.sleep(2)
         return
- 
+
     for d in deliveries:
         print(
             f"  Delivery ID: {d['delivery_id']}"
@@ -143,49 +156,32 @@ def claim_delivery(store_id, employee_id):
 
     delivery_id = input("Enter Delivery ID to claim (or press Enter to cancel): ").strip()
 
-    # 1. Verify this delivery belongs to the employee's store
-    # 2. Verify delivery status is 'pending'
-    # 3. Verify e_id is currently NULL / unassigned
-    # 4. Update delivery_record:
-    #       - e_id = employee_id
-    #       - delivery_status = 'claimed'
     if not delivery_id:
         return
- 
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT dr.delivery_id, dr.delivery_status, dr.e_id
-        FROM delivery_record dr
-        JOIN orders o ON dr.order_id = o.order_id
-        WHERE dr.delivery_id = %s AND o.st_id = %s
-        """,
-        (delivery_id, store_id)
-    )
-    record = cursor.fetchone()
- 
+
+    if not delivery_id.isdigit():
+        print("Delivery ID must be numeric.")
+        time.sleep(2)
+        return
+
+    record = get_delivery_record(delivery_id, store_id)
+
     if not record:
         print(f"Delivery {delivery_id} not found for this store.")
-        cursor.close()
-        conn.close()
         time.sleep(2)
         return
- 
+
     if record["delivery_status"] != "pending":
         print(f"Delivery {delivery_id} is already '{record['delivery_status']}' - cannot claim.")
-        cursor.close()
-        conn.close()
         time.sleep(2)
         return
- 
+
     if record["e_id"] is not None:
         print(f"Delivery {delivery_id} has already been claimed by another associate.")
-        cursor.close()
-        conn.close()
         time.sleep(2)
         return
- 
+
+    cursor = db.cursor(dictionary=True)
     cursor.execute(
         """
         UPDATE delivery_record
@@ -194,9 +190,8 @@ def claim_delivery(store_id, employee_id):
         """,
         (employee_id, delivery_id)
     )
-    conn.commit()
+    db.commit()
     cursor.close()
-    conn.close()
 
     print(f"Delivery {delivery_id} successfully claimed.")
     logger.info(f"Delivery associate '{employee_id}' claimed delivery '{delivery_id}'.")
@@ -209,20 +204,7 @@ def view_my_deliveries(store_id, employee_id):
         print("My Deliveries")
         print("-----------------------------")
 
-        # Query database for deliveries claimed by this employee.
-        #
-        # Suggested filters:
-        # - delivery_record.e_id = employee_id
-        # - orders.st_id = store_id
-        #
-        # Suggested fields:
-        # - delivery_id
-        # - order_id
-        # - delivered_to
-        # - delivery_status
-        # - delivered_at
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = db.cursor(dictionary=True)
         cursor.execute(
             """
             SELECT dr.delivery_id, dr.delivery_status, dr.delivered_to,
@@ -237,8 +219,7 @@ def view_my_deliveries(store_id, employee_id):
         )
         deliveries = cursor.fetchall()
         cursor.close()
-        conn.close()
- 
+
         if not deliveries:
             print("You have no deliveries assigned.")
         else:
@@ -260,6 +241,17 @@ def view_my_deliveries(store_id, employee_id):
 
         if choice == "1":
             delivery_id = input("Enter Delivery ID: ").strip()
+
+            if not delivery_id:
+                print("Delivery ID cannot be empty.")
+                time.sleep(2)
+                continue
+
+            if not delivery_id.isdigit():
+                print("Delivery ID must be numeric.")
+                time.sleep(2)
+                continue
+
             view_delivery_details(delivery_id, store_id, employee_id)
 
         elif choice == "2":
@@ -275,43 +267,23 @@ def view_delivery_details(delivery_id, store_id, employee_id):
     print(f"Viewing details for Delivery ID: {delivery_id}")
     print("-----------------------------")
 
-    # Query database for full delivery details.
-    # Make sure:
-    # - delivery belongs to this employee
-    # - delivery belongs to this store
-    #
-    # Suggested information:
-    # - delivery_record fields
-    # - related order info from orders
-    # - ordered items from order_contains if desired
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
- 
-    cursor.execute(
-        """
-        SELECT dr.delivery_id, dr.delivery_status, dr.delivered_to, dr.delivered_at,
-               o.order_id, o.order_date, o.order_type, o.order_status,
-               o.total_amount, o.delivery_method,
-               COALESCE(CONCAT(c.first_name, ' ', c.last_name), 'Guest') AS customer_name,
-               c.email AS customer_email, c.phone AS customer_phone
-        FROM delivery_record dr
-        JOIN orders o ON dr.order_id = o.order_id
-        LEFT JOIN customer c ON o.c_id = c.c_id
-        WHERE dr.delivery_id = %s
-          AND dr.e_id = %s
-          AND o.st_id = %s
-        """,
-        (delivery_id, employee_id, store_id)
-    )
-    record = cursor.fetchone()
- 
-    if not record:
-        print("Delivery not found or does not belong to you.")
-        cursor.close()
-        conn.close()
+    if not delivery_id:
+        print("Delivery ID cannot be empty.")
         input("\nPress Enter to return...")
         return
- 
+
+    if not str(delivery_id).isdigit():
+        print("Delivery ID must be numeric.")
+        input("\nPress Enter to return...")
+        return
+
+    record = get_delivery_record(delivery_id, store_id, employee_id)
+
+    if not record:
+        print("Delivery not found or does not belong to you.")
+        input("\nPress Enter to return...")
+        return
+
     print(f"Delivery ID     : {record['delivery_id']}")
     print(f"Status          : {record['delivery_status']}")
     print(f"Deliver To      : {record['delivered_to'] or 'N/A'}")
@@ -326,7 +298,8 @@ def view_delivery_details(delivery_id, store_id, employee_id):
     print(f"Total           : ${record['total_amount'] or 0:,.2f}")
     print("-----------------------------")
     print("Items:")
- 
+
+    cursor = db.cursor(dictionary=True)
     cursor.execute(
         """
         SELECT oc.prod_id, p.name, oc.quantity, oc.price_at_purchase,
@@ -339,30 +312,28 @@ def view_delivery_details(delivery_id, store_id, employee_id):
     )
     items = cursor.fetchall()
     cursor.close()
-    conn.close()
- 
-    for item in items:
-        print(
-            f"  Prod ID: {item['prod_id']}"
-            f"  |  {item['name']}"
-            f"  |  Qty: {item['quantity']}"
-            f"  |  Price: ${item['price_at_purchase']:,.2f}"
-            f"  |  Line Total: ${item['line_total']:,.2f}"
-        )
+
+    if not items:
+        print("No items found for this delivery's order.")
+    else:
+        for item in items:
+            print(
+                f"  Prod ID: {item['prod_id']}"
+                f"  |  {item['name']}"
+                f"  |  Qty: {item['quantity']}"
+                f"  |  Price: ${item['price_at_purchase']:,.2f}"
+                f"  |  Line Total: ${item['line_total']:,.2f}"
+            )
 
     input("\nPress Enter to return...")
-
 
 def update_delivery_status(store_id, employee_id):
     clear_screen()
     print("Update Delivery Status")
     print("-----------------------------")
-
-    # Show this employee's claimed deliveries
     print("Your active deliveries:\n")
- 
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+
+    cursor = db.cursor(dictionary=True)
     cursor.execute(
         """
         SELECT dr.delivery_id, dr.delivery_status, dr.delivered_to, o.order_id
@@ -370,20 +341,19 @@ def update_delivery_status(store_id, employee_id):
         JOIN orders o ON dr.order_id = o.order_id
         WHERE dr.e_id = %s
           AND o.st_id = %s
-          AND dr.delivery_status NOT IN ('Completed', 'Failed')
+          AND dr.delivery_status NOT IN ('completed')
         ORDER BY o.order_date ASC
         """,
         (employee_id, store_id)
     )
     deliveries = cursor.fetchall()
     cursor.close()
-    conn.close()
- 
+
     if not deliveries:
         print("No active deliveries to update.")
         time.sleep(2)
         return
- 
+
     for d in deliveries:
         print(
             f"  Delivery ID: {d['delivery_id']}"
@@ -396,72 +366,119 @@ def update_delivery_status(store_id, employee_id):
     if not delivery_id:
         return
 
+    if not delivery_id.isdigit():
+        print("Delivery ID must be numeric.")
+        time.sleep(2)
+        return
+
+    record = get_delivery_record(delivery_id, store_id, employee_id)
+
+    if not record:
+        print("Delivery not found or does not belong to you.")
+        time.sleep(2)
+        return
+
+    current_status = (record["delivery_status"] or "").strip().lower()
+    delivery_method = (record["delivery_method"] or "").strip().lower()
+    delivered_to = (record["delivered_to"] or "").strip().lower()
+
+    is_pickup = (
+        delivery_method in ("pickup", "in_store", "in-store")
+        or delivered_to in ("pickup", "in-store", "store")
+    )
+
+    if current_status in ("completed"):
+        print(f"Delivery {delivery_id} is already '{current_status}' and cannot be updated.")
+        time.sleep(2)
+        return
+
     while True:
         clear_screen()
         print(f"Update Status for Delivery ID: {delivery_id}")
+        print(f"Current Status: {current_status}")
+        print(f"Type: {'Pickup' if is_pickup else 'Delivery'}")
         print("-----------------------------")
         print("1. Mark as Ready")
-        print("2. Mark as Completed")
-        print("3. Mark as Failed")
-        print("4. Return")
 
-        choice = input("Please enter your choice (1-4): ").strip()
+        if not is_pickup:
+            print("2. Mark as Out for Delivery")
+            print("3. Mark as Completed")
+            print("4. Return")
+        else:
+            print("2. Mark as Completed")
+            print("3. Return")
 
-        if choice == "1":
-            new_status = "Ready"
-            new_order_status = "out_for_delivery"
+        choice = input("Please enter your choice: ").strip()
 
-        elif choice == "2":
-            new_status = "Completed"
-            new_order_status = "delivered"
+        new_status = None
+        new_order_status = None
 
-        elif choice == "3":
-            new_status = "Failed"
-            new_order_status = "delivery_failed"
+        if not is_pickup:
+            if choice == "1":
+                if current_status != "claimed":
+                    print(f"Cannot mark delivery as ready from status '{current_status}'.")
+                    time.sleep(2)
+                    continue
+                new_status = "ready"
+                new_order_status = "ready"
 
-        elif choice == "4":
-            return
+            elif choice == "2":
+                if current_status != "ready":
+                    print(f"Cannot mark delivery as out for delivery from status '{current_status}'.")
+                    time.sleep(2)
+                    continue
+                new_status = "out for delivery"
+                new_order_status = "out for delivery"
+
+            elif choice == "3":
+                if current_status != "out for delivery":
+                    print("Delivery must be 'out for delivery' before it can be completed.")
+                    time.sleep(2)
+                    continue
+                new_status = "completed"
+                new_order_status = "fulfilled"
+
+            elif choice == "4":
+                return
+
+            else:
+                print("Invalid choice. Please try again.")
+                time.sleep(2)
+                continue
 
         else:
-            print("Invalid choice. Please try again.")
+            if choice == "1":
+                if current_status != "claimed":
+                    print(f"Cannot mark pickup as ready from status '{current_status}'.")
+                    time.sleep(2)
+                    continue
+                new_status = "ready"
+                new_order_status = "ready for pickup"
+
+            elif choice == "2":
+                if current_status != "ready":
+                    print("Pickup must be 'ready' before it can be completed.")
+                    time.sleep(2)
+                    continue
+                new_status = "completed"
+                new_order_status = "fulfilled"
+
+            elif choice == "3":
+                return
+
+            else:
+                print("Invalid choice. Please try again.")
+                time.sleep(2)
+                continue
+
+        if new_status == current_status:
+            print(f"Delivery is already marked as '{current_status}'.")
             time.sleep(2)
             continue
 
-        # 1. Verify this delivery belongs to employee_id
-        # 2. Verify delivery belongs to store_id
-        # 3. Update delivery_record.delivery_status = new_status
-        # 4. If new_status == 'delivered':
-        #       optionally update delivered_at
-        # 5. Optionally update the related orders.order_status too
-        #    Example:
-        #       - 'out_for_delivery'
-        #       - 'delivered'
-        #       - 'delivery_failed'
+        cursor = db.cursor(dictionary=True)
 
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute(
-            """
-            SELECT dr.delivery_id, dr.delivery_status, o.order_id
-            FROM delivery_record dr
-            JOIN orders o ON dr.order_id = o.order_id
-            WHERE dr.delivery_id = %s
-              AND dr.e_id = %s
-              AND o.st_id = %s
-            """,
-            (delivery_id, employee_id, store_id)
-        )
-        record = cursor.fetchone()
- 
-        if not record:
-            print("Delivery not found or does not belong to you.")
-            cursor.close()
-            conn.close()
-            time.sleep(2)
-            return
- 
-        # Update delivery_record; stamp delivered_at when completed
-        if new_status == "Completed":
+        if new_status == "completed":
             cursor.execute(
                 """
                 UPDATE delivery_record
@@ -472,18 +489,25 @@ def update_delivery_status(store_id, employee_id):
             )
         else:
             cursor.execute(
-                "UPDATE delivery_record SET delivery_status = %s WHERE delivery_id = %s",
+                """
+                UPDATE delivery_record
+                SET delivery_status = %s
+                WHERE delivery_id = %s
+                """,
                 (new_status, delivery_id)
             )
- 
-        # Mirror on the parent order so order_status stays in sync
+
         cursor.execute(
-            "UPDATE orders SET order_status = %s WHERE order_id = %s",
+            """
+            UPDATE orders
+            SET order_status = %s
+            WHERE order_id = %s
+            """,
             (new_order_status, record["order_id"])
         )
-        conn.commit()
+
+        db.commit()
         cursor.close()
-        conn.close()
 
         print(f"Delivery {delivery_id} updated to status '{new_status}'.")
         logger.info(
