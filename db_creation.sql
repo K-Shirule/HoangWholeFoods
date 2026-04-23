@@ -7,6 +7,15 @@ CREATE TABLE billing_term (
     description VARCHAR(255),
     PRIMARY KEY (billing_term)
 );
+DROP DATABASE IF EXISTS HoangWholeFoods;
+CREATE DATABASE HoangWholeFoods;
+USE HoangWholeFoods;
+
+CREATE TABLE billing_term (
+    billing_term VARCHAR(20) NOT NULL,
+    description VARCHAR(255),
+    PRIMARY KEY (billing_term)
+);
 
 CREATE TABLE category (
     cat_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -33,8 +42,7 @@ CREATE TABLE customer (
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
-    created_at timestamp NOT NULL default current_timestamp,
-    CHECK (phone REGEXP '^[0-9]+$' OR phone is NULL)
+    created_at timestamp NOT NULL default current_timestamp
 );
 
 CREATE TABLE supplier (
@@ -66,7 +74,7 @@ CREATE TABLE employee (
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(20),
-    salary DECIMAL(10,2) default 0,
+    salary DECIMAL(10,2),
     is_current BOOLEAN DEFAULT TRUE,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
@@ -79,8 +87,7 @@ CREATE TABLE employee (
         'floor_employee',
         'delivery_associate'
     )),
-    CHECK (end_date IS NULL OR end_date >= start_date),
-    CHECK (phone REGEXP '^[0-9]+$' OR phone is NULL)
+    CHECK (end_date IS NULL OR end_date >= start_date)
 );
 
 ALTER TABLE store
@@ -230,11 +237,13 @@ CREATE TABLE supplier_order (
     received_date DATE,
     tracking_number VARCHAR(100),
     st_id INT,
+    list_id INT,
     PRIMARY KEY (so_id, supplier_id),
     FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id)
         ON DELETE CASCADE,
     FOREIGN KEY (st_id) REFERENCES store(st_id)
         ON DELETE SET NULL
+    FOREIGN KEY (list_id) REFERENCES restock_list(list_id)
 );
 
 CREATE TABLE so_contains (
