@@ -33,7 +33,8 @@ CREATE TABLE customer (
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
-    created_at timestamp NOT NULL default current_timestamp
+    created_at timestamp NOT NULL default current_timestamp,
+    CHECK (phone REGEXP '^[0-9]+$' OR phone is NULL)
 );
 
 CREATE TABLE supplier (
@@ -53,7 +54,7 @@ CREATE TABLE product (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     unit_price DECIMAL(10,2) NOT NULL,
-    units INT,
+    units DECIMAL(10,2),
     unit_type VARCHAR(50),
     FOREIGN KEY (category_id) REFERENCES category(cat_id)
 );
@@ -65,7 +66,7 @@ CREATE TABLE employee (
     last_name VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     phone VARCHAR(20),
-    salary DECIMAL(10,2),
+    salary DECIMAL(10,2) default 0,
     is_current BOOLEAN DEFAULT TRUE,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
@@ -78,7 +79,8 @@ CREATE TABLE employee (
         'floor_employee',
         'delivery_associate'
     )),
-    CHECK (end_date IS NULL OR end_date >= start_date)
+    CHECK (end_date IS NULL OR end_date >= start_date),
+    CHECK (phone REGEXP '^[0-9]+$' OR phone is NULL)
 );
 
 ALTER TABLE store
@@ -105,6 +107,10 @@ CREATE TABLE shopping_cart (
     created_at timestamp NOT NULL default current_timestamp,
     cart_status ENUM('new', 'done') NOT NULL,
     c_id INT NOT NULL UNIQUE,
+    st_id INT NULL,
+	FOREIGN KEY (st_id) REFERENCES store(st_id)
+		ON DELETE SET NULL
+		ON UPDATE CASCADE,
     FOREIGN KEY (c_id) REFERENCES customer(c_id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
@@ -181,7 +187,7 @@ CREATE TABLE delivery_record (
     delivered_to VARCHAR(60),
     delivery_status VARCHAR(20),
     order_id INT NOT NULL UNIQUE,
-    e_id INT NOT NULL,
+    e_id INT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(order_id),
     FOREIGN KEY (e_id) REFERENCES employee(e_id)
 );
@@ -211,16 +217,18 @@ CREATE TABLE stocks (
 CREATE TABLE restock_contains (
     list_id INT NOT NULL,
     prod_id INT NOT NULL,
+    supplier_id INT NOT NULL,
     quantity INT NOT NULL,
     PRIMARY KEY (list_id, prod_id),
     FOREIGN KEY (list_id) REFERENCES restock_list(list_id),
-    FOREIGN KEY (prod_id) REFERENCES product(prod_id)
+    FOREIGN KEY (prod_id) REFERENCES product(prod_id),
+    FOREIGN KEY (supplier_id) REFERENCES supplier(supplier_id)
 );
 
 CREATE TABLE supplier_order (
     so_id INT NOT NULL,
     supplier_id INT NOT NULL,
-    date_of_order TIMESTAMP NOT NULL default current_timestamp,
+    date_of_order DATE NOT NULL default current_timestamp,
     total_amount DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50),
     status VARCHAR(20),
