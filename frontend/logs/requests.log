@@ -40,3 +40,17 @@
 2026-04-23 19:34:33,383 | WARNING | auth | employee 'inventory123' - username not found in database.
 2026-04-23 19:34:53,466 | WARNING | auth | employee 'inventory@hwf.com' entered incorrect password.
 2026-04-23 19:35:41,414 | WARNING | auth | employee 'inventory@hwf.com' entered incorrect password.
+2026-04-23 21:58:24,123 | INFO | customer_page | customer '1' logged out successfully.
+2026-04-23 21:58:52,388 | INFO | supplier_page | Supplier '1' updated supplier order '1' to 'delivered'.
+2026-04-23 21:59:03,689 | INFO | supplier_page | Supplier '1' viewed total sales by products.
+2026-04-23 21:59:06,855 | INFO | supplier_page | Supplier '1' viewed total sales by products.
+2026-04-23 21:59:07,673 | INFO | supplier_page | Supplier '1' viewed total sales by products.
+2026-04-23 21:59:08,223 | INFO | supplier_page | Supplier '1' viewed total sales by products.
+2026-04-23 21:59:37,491 | INFO | supplier_page | Supplier '1' viewed total sales by products.
+2026-04-23 22:00:09,797 | WARNING | auth | employee 'inventory@hwf.com' entered incorrect password.
+2026-04-23 22:01:07,114 | INFO | inventory_manager_menu | Employee '5' received supplier order (1, 1) for store '3'.
+2026-04-23 22:02:33,513 | INFO | products_page | Customer '1' added product '11' to cart with quantity '2' from store '3'.
+2026-04-23 22:03:09,246 | INFO | customer_page | Customer '1' completed checkout for cart '1'.
+2026-04-23 22:03:32,083 | INFO | customer_page | customer '1' logged out successfully.
+2026-04-23 22:04:14,378 | INFO | delivery_associate | Delivery associate '8' updated delivery '8' to 'completed'.
+2026-04-23 22:04:18,250 | INFO | delivery_associate | Delivery associate '8' logged out successfully.

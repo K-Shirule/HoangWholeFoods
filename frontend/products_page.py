@@ -1,7 +1,7 @@
 import time
 
 from db_connector import db
-from homepage import clear_screen
+from utils import clear_screen
 from logger_config import get_logger
 
 

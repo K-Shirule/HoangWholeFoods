@@ -850,3 +850,4 @@ def view_total_sales_by_products(supplier_id):
 
         logger.info(f"Supplier '{supplier_id}' viewed total sales by products.")
         input("\nPress Enter to return...")
+        return
