@@ -1,56 +1,182 @@
 import time
+from datetime import datetime
+
 from utils import clear_screen
 from logger_config import get_logger
 from db_connector import db
 
-logger = get_logger()
+logger = get_logger(__name__)
+
+VALID_SUPPLIER_ORDER_STATUSES = ("pending", "shipped", "delivered", "received")
+
+
+def parse_date(date_text):
+    try:
+        return datetime.strptime(date_text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def get_supplier_order_header(so_id, supplier_id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT supplier_id, so_id, date_of_order, total_amount, payment_method,
+               status, expected_delivery_date, received_date, tracking_number,
+               st_id, list_id
+        FROM supplier_order
+        WHERE so_id = %s AND supplier_id = %s
+        """,
+        (so_id, supplier_id)
+    )
+    order = cursor.fetchone()
+    cursor.close()
+    return order
+
+
+def get_supplier_order_lines(so_id, supplier_id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT sc.supplier_id, sc.so_id, sc.prod_id, p.name,
+               sc.quantity, sc.cost_at_purchase
+        FROM so_contains sc
+        JOIN product p ON sc.prod_id = p.prod_id
+        WHERE sc.so_id = %s AND sc.supplier_id = %s
+        ORDER BY p.name ASC
+        """,
+        (so_id, supplier_id)
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    return rows
+
+
+def get_supplier_product(supplier_id, prod_id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT supplier_id, prod_id, supplier_price
+        FROM supplies
+        WHERE supplier_id = %s AND prod_id = %s
+        """,
+        (supplier_id, prod_id)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    return row
+
+
+def get_product(prod_id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT prod_id, category_id, name, description, unit_price, units, unit_type
+        FROM product
+        WHERE prod_id = %s
+        """,
+        (prod_id,)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    return row
+
+
+def category_exists(category_id):
+    cursor = db.cursor()
+    cursor.execute("SELECT cat_id FROM category WHERE cat_id = %s", (category_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    return row is not None
+
+
+def get_all_categories():
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT cat_id, name, description
+        FROM category
+        ORDER BY name ASC
+        """
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    return rows
+
 
 def supplier_page(supplier_id):
     while True:
         clear_screen()
         print("Welcome to the Supplier Page")
-        print("Here you can view incoming supplier orders and update their status.")
+        print("Here you can view incoming supplier orders and manage the products you supply.")
         print("1. View Supplier Orders")
         print("2. View Products You Supply")
         print("3. Add Product You Supply")
         print("4. Remove Product You Supply")
         print("5. View Pending Supplier Orders")
-        print("6. View Competitive Products")
-        print("7. View Total Sales from Your Products")
-        print("8. Logout")
+        print("6. View Total Sales from Your Products")
+        print("7. Logout")
 
-        choice = input("Please enter your choice (1-5): ").strip()
+        choice = input("Please enter your choice (1-7): ").strip()
 
         if choice == "1":
             view_supplier_orders(supplier_id)
-
         elif choice == "2":
             view_supplied_products(supplier_id)
-
         elif choice == "3":
             add_supplied_product(supplier_id)
-
         elif choice == "4":
             remove_supplied_product(supplier_id)
-
         elif choice == "5":
             view_pending_supplier_orders(supplier_id)
-
         elif choice == "6":
-            view_competitve_products(supplier_id)
-
-        elif choice == "7":
             view_total_sales_by_products(supplier_id)
-
-        elif choice == "8":
+        elif choice == "7":
             print("Logging out...")
             logger.info(f"Supplier '{supplier_id}' logged out successfully.")
             time.sleep(2)
             break
-
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
+
+
+def print_supplier_orders_table(orders):
+    print(
+        f"| {'Supplier ID':<11} "
+        f"| {'SO ID':<8} "
+        f"| {'Order Date':<12} "
+        f"| {'Total':<12} "
+        f"| {'Payment':<12} "
+        f"| {'Status':<11} "
+        f"| {'Expected':<12} "
+        f"| {'Received':<12} "
+        f"| {'Tracking':<15} "
+        f"| {'Store':<7} "
+        f"| {'List':<7} |"
+    )
+    print("-" * 145)
+
+    for order in orders:
+        order_date = order["date_of_order"].strftime("%Y-%m-%d") if order["date_of_order"] else "NULL"
+        expected = order["expected_delivery_date"].strftime("%Y-%m-%d") if order["expected_delivery_date"] else "NULL"
+        received = order["received_date"].strftime("%Y-%m-%d") if order["received_date"] else "NULL"
+        total_amount = float(order["total_amount"]) if order["total_amount"] is not None else 0.0
+
+        print(
+            f"| {order['supplier_id']:<11} "
+            f"| {order['so_id']:<8} "
+            f"| {order_date:<12} "
+            f"| ${total_amount:<11.2f} "
+            f"| {(order['payment_method'] or 'NULL'):<12} "
+            f"| {(order['status'] or 'NULL'):<11} "
+            f"| {expected:<12} "
+            f"| {received:<12} "
+            f"| {(order['tracking_number'] or 'NULL'):<15} "
+            f"| {str(order['st_id']) if order['st_id'] is not None else 'NULL':<7} "
+            f"| {str(order['list_id']) if order['list_id'] is not None else 'NULL':<7} |"
+        )
+
 
 def view_supplier_orders(supplier_id):
     while True:
@@ -58,15 +184,18 @@ def view_supplier_orders(supplier_id):
         print("Supplier Orders")
         print("-----------------------------")
 
-        #show a list of all supplier orders this supplier
-        cursor = db.cursor(dictionary = True)
-        query = """
-            SELECT supplier_id, so_id, date_of_order, total_amount, payment_method, status, expected_delivery_date, received_date, tracking_number, st_id, list_id
+        cursor = db.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT supplier_id, so_id, date_of_order, total_amount, payment_method,
+                   status, expected_delivery_date, received_date, tracking_number,
+                   st_id, list_id
             FROM supplier_order
             WHERE supplier_id = %s
-            ORDER BY date_of_order DESC
-            """
-        cursor.execute(query, (supplier_id,))
+            ORDER BY date_of_order DESC, so_id DESC
+            """,
+            (supplier_id,)
+        )
         orders = cursor.fetchall()
         cursor.close()
 
@@ -74,36 +203,8 @@ def view_supplier_orders(supplier_id):
             print("No supplier orders found.")
             input("\nPress Enter to return...")
             return
-        
-        print("Orders needed to be fulfilled by you \n")
-        print(
-            f"| {'Supplier ID': <15}" \
-            f"| {'Supplier Order ID': <20}" \
-            f"| {'Date of Order': <15}" \
-            f"| {'Total Amount': <15}" \
-            f"| {'Payment Method': <15}" \
-            f"| {'Status': <12}" \
-            f"| {'Expected Delivery Date': <25}" \
-            f"| {'Received Date': <15}" \
-            f"| {'Tracking Number': <15}" \
-            f"| {'Store ID': <8}" \
-            f"| {'List ID': <8} |" 
-        )
-        print("-" * 90)
-        for order in orders:
-            print(
-                f"| {order['supplier_id']: <15}" \
-                f"| {order['so_id']: <20}" \
-                f"| {order['date_of_order'].strftime('%Y-%m-%d'): <15}" \
-                f"| ${order['total_amount']: <15.2f}" \
-                f"| {order['payment_method'] if order['payment_method'] else 'NULL': <15}" \
-                f"| {order['status'] if order['status'] else 'NULL': <12}" \
-                f"| {order['expected_delivery_date'].strftime('%Y-%m-%d') if order['expected_delivery_date'] else 'NULL': <25}" \
-                f"| {order['received_date'].strftime('%Y-%m-%d') if order['received_date'] else 'NULL': <15}" \
-                f"| {order['tracking_number'] if order['tracking_number'] else 'NULL': <15}" \
-                f"| {order['st_id'] if order['st_id'] is not None else 'NULL': <8}" \
-                f"| {order['list_id'] if order['list_id'] is not None else 'NULL': <8} |" 
-            )
+
+        print_supplier_orders_table(orders)
 
         print("\nOptions:")
         print("1. View Supplier Order Details")
@@ -114,11 +215,19 @@ def view_supplier_orders(supplier_id):
 
         if choice == "1":
             so_id = input("Enter Supplier Order ID: ").strip()
-            view_supplier_order_details(so_id, supplier_id)
+            if not so_id.isdigit():
+                print("Invalid Supplier Order ID.")
+                time.sleep(2)
+                continue
+            view_supplier_order_details(int(so_id), supplier_id)
 
         elif choice == "2":
             so_id = input("Enter Supplier Order ID: ").strip()
-            update_supplier_order_status(so_id, supplier_id)
+            if not so_id.isdigit():
+                print("Invalid Supplier Order ID.")
+                time.sleep(2)
+                continue
+            update_supplier_order_status(int(so_id), supplier_id)
 
         elif choice == "3":
             return
@@ -126,113 +235,144 @@ def view_supplier_orders(supplier_id):
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
+
 
 def view_supplier_order_details(so_id, supplier_id):
     clear_screen()
     print(f"Viewing Supplier Order ID: {so_id}")
     print("-----------------------------")
 
-    #show the order that this supplier chooses to view in more detail
-    cursor = db.cursor(dictionary = True)
-    query = """
-        SELECT supplier_id, so_id, prod_id, quantity, cost_at_purchase
-        FROM so_contains
-        WHERE so_id = %s AND supplier_id = %s
-        ORDER BY so_id DESC
-        """
-    cursor.execute(query, (so_id, supplier_id))
-    order_details = cursor.fetchall()
-    cursor.close()
-
-    if not order_details:
+    header = get_supplier_order_header(so_id, supplier_id)
+    if not header:
         print("Order not found or access denied.")
         input("\nPress Enter to return...")
         return
-    
+
+    order_details = get_supplier_order_lines(so_id, supplier_id)
+    if not order_details:
+        print("This supplier order has no line items.")
+        input("\nPress Enter to return...")
+        return
+
+    print(f"Status: {header['status'] or 'NULL'}")
+    print(f"Order Date: {header['date_of_order']}")
+    print(f"Store ID: {header['st_id']}")
+    print(f"List ID: {header['list_id']}")
+    print(f"Tracking Number: {header['tracking_number'] or 'NULL'}")
+    print()
+
     print(
-        f"| {'Supplier ID': <15}" \
-        f"| {'Supplier Order ID': <20}" \
-        f"| {'Product ID': <12}" \
-        f"| {'Quantity': <10}" \
-        f"| {'Cost at Purchase': <18} |" 
+        f"| {'Supplier ID':<11} "
+        f"| {'SO ID':<8} "
+        f"| {'Product ID':<10} "
+        f"| {'Product Name':<24} "
+        f"| {'Quantity':<10} "
+        f"| {'Cost at Purchase':<17} |"
     )
-    print("-" * 90)
-    
+    print("-" * 95)
+
     for detail in order_details:
+        cost = float(detail["cost_at_purchase"]) if detail["cost_at_purchase"] is not None else 0.0
         print(
-            f"| {detail['supplier_id']: <15}" \
-            f"| {detail['so_id']: <20}" \
-            f"| {detail['prod_id']: <12}" \
-            f"| {detail['quantity'] if detail['quantity'] is not None else 'NULL': <10}" \
-            f"| ${detail['cost_at_purchase'] if detail['cost_at_purchase'] is not None else 'NULL': <18.2f} |"
+            f"| {detail['supplier_id']:<11} "
+            f"| {detail['so_id']:<8} "
+            f"| {detail['prod_id']:<10} "
+            f"| {detail['name'][:24]:<24} "
+            f"| {detail['quantity'] if detail['quantity'] is not None else 'NULL':<10} "
+            f"| ${cost:<16.2f} |"
         )
 
     input("\nPress Enter to return...")
 
+
 def update_supplier_order_status(so_id, supplier_id):
+    order = get_supplier_order_header(so_id, supplier_id)
+    if not order:
+        print("Supplier order not found or access denied.")
+        time.sleep(2)
+        return
+
+    current_status = (order["status"] or "").lower()
+
     while True:
         clear_screen()
         print(f"Update Status for Supplier Order ID: {so_id}")
+        print(f"Current Status: {order['status'] or 'NULL'}")
         print("-----------------------------")
-        print("1. Mark as Confirmed")
-        print("2. Mark as Processing")
-        print("3. Mark as Shipped")
-        print("4. Mark as Delivered")
-        print("5. Return")
+        print("1. Mark as Shipped")
+        print("2. Mark as Delivered")
+        print("3. Return")
 
-        choice = input("Please enter your choice (1-5): ").strip()
+        choice = input("Please enter your choice (1-3): ").strip()
 
         if choice == "1":
-            new_status = "confirmed"
-
-        elif choice == "2":
-            new_status = "processing"
-
-        elif choice == "3":
             new_status = "shipped"
-
-        elif choice == "4":
+        elif choice == "2":
             new_status = "delivered"
-
-        elif choice == "5":
+        elif choice == "3":
             return
-
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
             continue
 
-        tracking_number = None
-        expected_delivery_date = None
-        received_date = None
+        if current_status == "received":
+            print("Received orders cannot be updated further by the supplier.")
+            time.sleep(2)
+            return
+
+        if current_status == "delivered" and new_status == "shipped":
+            print("You cannot move a delivered order back to shipped.")
+            time.sleep(2)
+            continue
+
+        if current_status == "pending" and new_status == "delivered":
+            print("Order should be marked as shipped before delivered.")
+            time.sleep(2)
+            continue
+
+        tracking_number = order["tracking_number"]
+        expected_delivery_date = order["expected_delivery_date"]
+        received_date = order["received_date"]
 
         if new_status == "shipped":
-            tracking_number = input("Enter tracking number: ").strip()
-            expected_delivery_date = input("Enter expected delivery date (YYYY-MM-DD): ").strip()
+            tracking_number_input = input("Enter tracking number: ").strip()
+            expected_input = input("Enter expected delivery date (YYYY-MM-DD): ").strip()
 
-        elif new_status == "delivered":
-            received_date = input("Enter received/delivery date (YYYY-MM-DD): ").strip()
-        
-        #update the supplier_order table with the new status and any additional info if applicable
+            if not tracking_number_input:
+                print("Tracking number cannot be empty when marking as shipped.")
+                time.sleep(2)
+                continue
+
+            parsed_expected = parse_date(expected_input)
+            if not parsed_expected:
+                print("Invalid expected delivery date format.")
+                time.sleep(2)
+                continue
+
+            tracking_number = tracking_number_input
+            expected_delivery_date = parsed_expected
+
         cursor = db.cursor()
-        query = """
+        cursor.execute(
+            """
             UPDATE supplier_order
             SET status = %s,
                 tracking_number = %s,
                 expected_delivery_date = %s,
                 received_date = %s
             WHERE so_id = %s AND supplier_id = %s
-            """
-        cursor.execute(query, (new_status, tracking_number, expected_delivery_date, received_date, so_id, supplier_id))
-        db.commit()     #save changes to supplier table
+            """,
+            (new_status, tracking_number, expected_delivery_date, received_date, so_id, supplier_id)
+        )
+        db.commit()
         cursor.close()
 
         print(f"Supplier order {so_id} updated to status '{new_status}'.")
-        logger.info(
-            f"Supplier '{supplier_id}' updated supplier order '{so_id}' to '{new_status}'."
-        )
+        logger.info(f"Supplier '{supplier_id}' updated supplier order '{so_id}' to '{new_status}'.")
         time.sleep(2)
         return
+
 
 def view_supplied_products(supplier_id):
     while True:
@@ -240,15 +380,31 @@ def view_supplied_products(supplier_id):
         print("Products You Supply")
         print("-----------------------------")
 
-        #show a list of all products that this supplier supplies
-        cursor = db.cursor(dictionary = True)
-        query = """
-            SELECT s.supplier_id, s.prod_id, p.name, p.description, p.unit_price, p.units, p.unit_type, p.category_id
-            FROM supplies s JOIN product p ON s.prod_id = p.prod_id
-            WHERE supplier_id = %s
-            ORDER BY prod_id DESC
+        cursor = db.cursor(dictionary=True)
+        cursor.execute(
             """
-        cursor.execute(query, (supplier_id,))
+            SELECT
+                s.supplier_id,
+                s.prod_id,
+                s.supplier_price,
+                p.name,
+                p.description,
+                p.units,
+                p.unit_type,
+                p.category_id,
+                (
+                    SELECT MIN(s2.supplier_price)
+                    FROM supplies s2
+                    WHERE s2.prod_id = s.prod_id
+                      AND s2.supplier_id <> s.supplier_id
+                ) AS lowest_competitor_price
+            FROM supplies s
+            JOIN product p ON s.prod_id = p.prod_id
+            WHERE s.supplier_id = %s
+            ORDER BY s.prod_id DESC
+            """,
+            (supplier_id,)
+        )
         supplied_products = cursor.fetchall()
         cursor.close()
 
@@ -256,32 +412,40 @@ def view_supplied_products(supplier_id):
             print("You are not currently supplying any products.")
             input("\nPress Enter to return...")
             return
-        
+
         print(
-            f"| {'Supplier ID': <15}" \
-            f"| {'Product ID': <12}" \
-            f"| {'Product Name': <20}" \
-            f"| {'Description': <30}" \
-            f"| {'Unit Price': <12}" \
-            f"| {'Units': <8}" \
-            f"| {'Unit Type': <12}" \
-            f"| {'Category ID': <12} |"
+            f"| {'Supplier ID':<11} "
+            f"| {'Product ID':<10} "
+            f"| {'Product Name':<20} "
+            f"| {'Your Price':<12} "
+            f"| {'Lowest Competitor':<18} "
+            f"| {'Units':<8} "
+            f"| {'Unit Type':<12} "
+            f"| {'Category':<10} |"
         )
-        print("-" * 90)
+        print("-" * 125)
 
         for supply in supplied_products:
-            print(
-                f"| {supply['supplier_id']: <15}" \
-                f"| {supply['prod_id']: <12}" \
-                f"| {supply['name'][:20]: <20}" \
-                f"| {supply['description'][:30]: <30}" \
-                f"| ${supply['unit_price'] if supply['unit_price'] is not None else 'NULL': <12.2f}" \
-                f"| {supply['units'] if supply['units'] is not None else 'NULL': <8}" \
-                f"| {supply['unit_type'] if supply['unit_type'] else 'NULL': <12}" \
-                f"| {supply['category_id'] if supply['category_id'] is not None else 'NULL': <12} |"
+            supplier_price = float(supply["supplier_price"]) if supply["supplier_price"] is not None else 0.0
+            competitor_text = (
+                f"${float(supply['lowest_competitor_price']):.2f}"
+                if supply["lowest_competitor_price"] is not None
+                else "None"
             )
-        
+
+            print(
+                f"| {supply['supplier_id']:<11} "
+                f"| {supply['prod_id']:<10} "
+                f"| {supply['name'][:20]:<20} "
+                f"| ${supplier_price:<11.2f} "
+                f"| {competitor_text:<18} "
+                f"| {str(supply['units']) if supply['units'] is not None else 'NULL':<8} "
+                f"| {(supply['unit_type'] or 'NULL'):<12} "
+                f"| {str(supply['category_id']) if supply['category_id'] is not None else 'NULL':<10} |"
+            )
+
         input("\nPress Enter to return...")
+
 
 def add_supplied_product(supplier_id):
     while True:
@@ -290,38 +454,60 @@ def add_supplied_product(supplier_id):
         print("-----------------------------")
 
         print("Existing Product Catalog:")
-        #query to show all the products that currently supplied by any supplier so that they can choose to add an existing product if they want instead of creating a new one
-        cursor = db.cursor(dictionary = True)
-        query = """
-            SELECT prod_id, name, category_id, unit_price
-            FROM product
-            ORDER BY name ASC
+        cursor = db.cursor(dictionary=True)
+        cursor.execute(
             """
-        cursor.execute(query)
+            SELECT
+                p.prod_id,
+                p.name,
+                p.category_id,
+                (
+                    SELECT MIN(s.supplier_price)
+                    FROM supplies s
+                    WHERE s.prod_id = p.prod_id
+                ) AS lowest_supplier_price,
+                EXISTS (
+                    SELECT 1
+                    FROM supplies sx
+                    WHERE sx.prod_id = p.prod_id
+                      AND sx.supplier_id = %s
+                ) AS already_supply
+            FROM product p
+            ORDER BY p.name ASC
+            """,
+            (supplier_id,)
+        )
         products = cursor.fetchall()
         cursor.close()
 
         if not products:
-            print("No products found in catalog yet")
-
-        print("Existing Products:")
-        print(
-            f"| {'Product ID': <12}" \
-            f"| {'Product Name': <20}" \
-            f"| {'Category ID': <12}" \
-            f"| {'Unit Price': <12} |"
-        )
-        print("-" * 90)
-
-        for product in products: 
+            print("No products found in catalog yet.")
+        else:
             print(
-                f"| {product['prod_id']: <12}" \
-                f"| {product['name'][:20]: <20}" \
-                f"| {product['category_id'] if product['category_id'] is not None else 'NULL': <12}" \
-                f"| ${product['unit_price'] if product['unit_price'] is not None else 'NULL': <12.2f} |"
-            )   
-            
-        print("(Select a product to supply OR add a new one)\n")
+                f"| {'Product ID':<10} "
+                f"| {'Product Name':<20} "
+                f"| {'Category ID':<12} "
+                f"| {'Lowest Supplier Price':<22} "
+                f"| {'You Supply?':<11} |"
+            )
+            print("-" * 90)
+
+            for product in products:
+                lowest_price_text = (
+                    f"${float(product['lowest_supplier_price']):.2f}"
+                    if product["lowest_supplier_price"] is not None
+                    else "None"
+                )
+                already_supply_text = "Yes" if product["already_supply"] else "No"
+
+                print(
+                    f"| {product['prod_id']:<10} "
+                    f"| {product['name'][:20]:<20} "
+                    f"| {str(product['category_id']) if product['category_id'] is not None else 'NULL':<12} "
+                    f"| {lowest_price_text:<22} "
+                    f"| {already_supply_text:<11} |"
+                )
+
         print("\nOptions:")
         print("1. Supply an Existing Product")
         print("2. Add a New Product to Catalog")
@@ -330,55 +516,46 @@ def add_supplied_product(supplier_id):
         choice = input("Please enter your choice (1-3): ").strip()
 
         if choice == "1":
-            prod_id = input("Enter Product ID to supply: ").strip()
+            prod_id_text = input("Enter Product ID to supply: ").strip()
+            price_text = input("Enter your supplier price for this product: ").strip()
 
-            if not prod_id.isdigit():
+            if not prod_id_text.isdigit():
                 print("Invalid Product ID.")
                 time.sleep(2)
                 continue
 
-            prod_id = int(prod_id)
+            try:
+                supplier_price = float(price_text)
+                if supplier_price < 0:
+                    raise ValueError
+            except ValueError:
+                print("Supplier price must be a non-negative number.")
+                time.sleep(2)
+                continue
 
-            #check if product id exists in the product table
-            cursor = db.cursor()
-            query = """
-                SELECT prod_id 
-                FROM product
-                WHERE prod_id = %s
-                """
-            cursor.execute(query, (prod_id,))
-            result = cursor.fetchone()
-            cursor.close()
+            prod_id = int(prod_id_text)
 
-            if not result:
+            product = get_product(prod_id)
+            if not product:
                 print("Product ID does not exist.")
                 time.sleep(2)
                 continue
-            
-            #check if the product is already supplied by this supplier
-            cursor = db.cursor()
-            query = """
-                SELECT supplier_id, prod_id
-                FROM supplies
-                WHERE supplier_id = %s AND prod_id = %s
-                """
-            cursor.execute(query, (supplier_id, prod_id))
-            existing_supply = cursor.fetchone()
-            cursor.close()
 
+            existing_supply = get_supplier_product(supplier_id, prod_id)
             if existing_supply:
                 print("You already supply this product.")
                 time.sleep(2)
                 continue
 
-            #add to supplies table if not already supplying
             cursor = db.cursor()
-            query = """
-                INSERT INTO supplies (supplier_id, prod_id)
-                VALUES (%s, %s);
+            cursor.execute(
                 """
-            cursor.execute(query, (supplier_id, prod_id))
-            db.commit()     #save changes to supplies table
+                INSERT INTO supplies (supplier_id, prod_id, supplier_price)
+                VALUES (%s, %s, %s)
+                """,
+                (supplier_id, prod_id, supplier_price)
+            )
+            db.commit()
             cursor.close()
 
             print(f"Product {prod_id} added to your supplied products.")
@@ -386,52 +563,99 @@ def add_supplied_product(supplier_id):
             time.sleep(2)
 
         elif choice == "2":
+            print("\nAvailable Categories:")
+            categories = get_all_categories()
+
+            if not categories:
+                print("No categories exist yet. Cannot add a new product.")
+                time.sleep(2)
+                continue
+
+            print(
+                f"| {'Category ID':<12} "
+                f"| {'Category Name':<20} "
+                f"| {'Description':<40} |"
+            )
+            print("-" * 80)
+
+            for category in categories:
+                description_text = (category["description"] or "NULL")[:40]
+                print(
+                    f"| {category['cat_id']:<12} "
+                    f"| {category['name'][:20]:<20} "
+                    f"| {description_text:<40} |"
+                )
+
             print("\nEnter new product details:")
-            #prod_id = None   
             name = input("Product name: ").strip()
             description = input("Description: ").strip()
-            category_id = input("Category ID: ").strip()
-            unit_price = input("Price: ").strip()
-            units = input("Units: ").strip()
-            unit_type = input("Unit type: ").strip()
+            category_id_text = input("Pick the category that fits best (enter Category ID): ").strip()
+            units_text = input("Units (optional): ").strip()
+            unit_type = input("Unit type (optional): ").strip()
+            supplier_price_text = input("Your supplier price: ").strip()
 
-            if not name or not category_id.isdigit():
-                print("Invalid input.")
+            if not name:
+                print("Product name cannot be empty.")
                 time.sleep(2)
                 continue
 
-            try:    #validate price input
-                unit_price = float(unit_price)
-                units = int(units) if units.isdigit() else None
-                category_id = int(category_id)
+            if not category_id_text.isdigit():
+                print("Invalid Category ID.")
+                time.sleep(2)
+                continue
+
+            category_id = int(category_id_text)
+            if not category_exists(category_id):
+                print("Category ID does not exist.")
+                time.sleep(2)
+                continue
+
+            try:
+                supplier_price = float(supplier_price_text)
+                if supplier_price < 0:
+                    raise ValueError
             except ValueError:
-                print("Invalid numberic input.")
+                print("Supplier price must be a non-negative number.")
                 time.sleep(2)
                 continue
 
-            #insert new product into product table 
-            cursor = db.cursor()
-            query = """
-                INSERT INTO product (name, description, category_id, unit_price, units, unit_type)
-                VALUES (%s, %s, %s, %s, %s, %s);
-                """
-            cursor.execute(query, (name, description, category_id, unit_price, units, unit_type))  
-            db.commit()     #save changes to product table
-            new_prod_id = cursor.lastrowid      #get the prod_id of the newly row
-            cursor.close()
+            if units_text:
+                try:
+                    units = float(units_text)
+                    if units < 0:
+                        raise ValueError
+                except ValueError:
+                    print("Units must be a non-negative number.")
+                    time.sleep(2)
+                    continue
+            else:
+                units = None
 
-            #link to this supplier in supplies table, new row to supppies table
+            initial_unit_price = round(supplier_price * 1.15, 2)
+
             cursor = db.cursor()
-            query = """
-                INSERT INTO supplies (supplier_id, prod_id, supply_price)
-                VALUES (%s, %s, %s);
+            cursor.execute(
                 """
-            cursor.execute(query, (supplier_id, new_prod_id, unit_price))
+                INSERT INTO product (category_id, name, description, unit_price, units, unit_type)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (category_id, name, description or None, initial_unit_price, units, unit_type or None)
+            )
+            db.commit()
+            new_prod_id = cursor.lastrowid
+
+            cursor.execute(
+                """
+                INSERT INTO supplies (supplier_id, prod_id, supplier_price)
+                VALUES (%s, %s, %s)
+                """,
+                (supplier_id, new_prod_id, supplier_price)
+            )
             db.commit()
             cursor.close()
 
             print(f"New product '{name}' added and linked to your supplies.")
-            logger.info(f"Supplier '{supplier_id}' created new product '{name}' and added to supplies.")
+            logger.info(f"Supplier '{supplier_id}' created new product '{name}' and added it to supplies.")
             time.sleep(2)
 
         elif choice == "3":
@@ -441,21 +665,24 @@ def add_supplied_product(supplier_id):
             print("Invalid choice. Try again.")
             time.sleep(2)
 
+
 def remove_supplied_product(supplier_id):
     while True:
         clear_screen()
         print("Remove Product You Supply")
         print("-----------------------------")
 
-        #show current supplied products
-        cursor = db.cursor(dictionary = True)
-        query = """
-            SELECT s.supplier_id, s.prod_id, p.name
-            FROM supplies s JOIN product p ON s.prod_id = p.prod_id
-            WHERE supplier_id = %s
-            ORDER BY prod_id DESC
+        cursor = db.cursor(dictionary=True)
+        cursor.execute(
             """
-        cursor.execute(query, (supplier_id,))
+            SELECT s.supplier_id, s.prod_id, s.supplier_price, p.name
+            FROM supplies s
+            JOIN product p ON s.prod_id = p.prod_id
+            WHERE s.supplier_id = %s
+            ORDER BY s.prod_id DESC
+            """,
+            (supplier_id,)
+        )
         supplied_products = cursor.fetchall()
         cursor.close()
 
@@ -463,164 +690,141 @@ def remove_supplied_product(supplier_id):
             print("You are not currently supplying any products.")
             input("\nPress Enter to return...")
             return
-        
+
         print("Your current supplied products:")
         print(
-            f"| {'Product ID': <12}" \
-            f"| {'Product Name': <20} |"
+            f"| {'Product ID':<10} "
+            f"| {'Product Name':<20} "
+            f"| {'Supplier Price':<15} |"
         )
-        print("-" * 90)
+        print("-" * 55)
 
         for supply in supplied_products:
+            supplier_price = float(supply["supplier_price"]) if supply["supplier_price"] is not None else 0.0
             print(
-                f"| {supply['prod_id']: <12}" \
-                f"| {supply['name'][:20]: <20} |"
+                f"| {supply['prod_id']:<10} "
+                f"| {supply['name'][:20]:<20} "
+                f"| ${supplier_price:<14.2f} |"
             )
 
-        prod_id = input("Enter Product ID to remove: ").strip()
+        prod_id_text = input("Enter Product ID to remove (or press Enter to cancel): ").strip()
+        if not prod_id_text:
+            return
 
-        if not prod_id.isdigit():
+        if not prod_id_text.isdigit():
             print("Invalid Product ID.")
             time.sleep(2)
             continue
 
-        prod_id = int(prod_id)
-        
-        #check if this supplier actually supplies this product
-        cursor = db.cursor(dictionary = True)
-        query = """
-            SELECT supplier_id, prod_id, supply_price
-            FROM supplies
-            WHERE supplier_id = %s AND prod_id = %s
-            """
-        cursor.execute(query, (supplier_id, prod_id))
-        existing = cursor.fetchone()
-        cursor.close()
+        prod_id = int(prod_id_text)
 
+        existing = get_supplier_product(supplier_id, prod_id)
         if not existing:
             print("You do not supply this product.")
             time.sleep(2)
             continue
 
         confirmation = input(f"Are you sure you want to stop supplying product {prod_id}? (y/n): ").strip().lower()
-        if confirmation != 'y':
+        if confirmation != "y":
             print("Operation cancelled.")
             time.sleep(2)
             continue
 
-        #proceed to remove the product from this supplier's supplied products list
         cursor = db.cursor()
-        query = """
+        cursor.execute(
+            """
             DELETE FROM supplies
             WHERE supplier_id = %s AND prod_id = %s
-            """
-        cursor.execute(query, (supplier_id, prod_id))
-        db.commit()     #save changes to supplies table
+            """,
+            (supplier_id, prod_id)
+        )
+        db.commit()
         cursor.close()
 
         print(f"Product {prod_id} removed from your supplied products list.")
         logger.info(f"Supplier '{supplier_id}' removed product '{prod_id}' from supplies.")
         time.sleep(2)
 
+
 def view_pending_supplier_orders(supplier_id):
     while True:
         clear_screen()
-        print("Pending Supplier Orders")
-        print("-----------------------------")
-        
-        #show all supplier orders that are not yet marked as delivered for this supplier
-        cursor = db.cursor(dictionary = True)
-        query = """
-            SELECT sp.supplier_name, COUNT (so.so_id) AS pending_orders
-            FROM supplier sp JOIN supplier_order so ON sp.supplier_id = so.supplier_id
-            WHERE sp.supplier_id = %s AND so.status = 'Pending'
-            GROUP BY sp.supplier_name
-            """
-        cursor.execute(query, (supplier_id,))
-        pending_orders = cursor.fetchall()
-        cursor.close()
-
-        if not pending_orders:
-            print("No pending supplier orders found.")
-            input("\nPress Enter to return...")
-            return
-        
-        print(
-            f"| {'Supplier Name': <20}" \
-            f"| {'Pending Orders': <15} |"
-        )
-        print("-" * 90)
-
-        for order in pending_orders:
-            print(
-                f"| {order['supplier_name'][:20]: <20}" \
-                f"| {order['pending_orders'] if order['pending_orders'] is not None else '0': <15} |"
-            )
-        
-        logger.info(f"Supplier '{supplier_id}' viewed pending supplier orders.")
-        input("\nPress Enter to return...")
-
-def view_competitve_products(supplier_id):
-    while True:
-        clear_screen()
-        print("Competitive Products")
+        print("Pending / Active Supplier Orders")
         print("-----------------------------")
 
-        #show all products that this supplier supplies and also supplied by other suppliers
-        cursor = db.cursor(dictionary = True)
-        query = """
-            SELECT p.name, COUNT(DISTINCT s.supplier_id) AS num_suppliers
-            FROM supplies s JOIN product p ON s.prod_id = p.prod_id
-            WHERE s.prod_id IN (
-                SELECT prod_id
-                FROM supplies
-                WHERE supplier_id = %s
-            )
-            GROUP BY p.name
-            HAVING COUNT(DISTINCT s.supplier_id) > 1
-            ORDER BY num_suppliers DESC
+        cursor = db.cursor(dictionary=True)
+        cursor.execute(
             """
-        cursor.execute(query, (supplier_id,))
-        competitive_products = cursor.fetchall()
+            SELECT supplier_id, so_id, date_of_order, total_amount, payment_method,
+                   status, expected_delivery_date, received_date, tracking_number,
+                   st_id, list_id
+            FROM supplier_order
+            WHERE supplier_id = %s
+              AND LOWER(COALESCE(status, 'pending')) <> 'received'
+            ORDER BY date_of_order DESC, so_id DESC
+            """,
+            (supplier_id,)
+        )
+        orders = cursor.fetchall()
         cursor.close()
 
-        if not competitive_products:
-            print("No competitive products found (products you supply that are also supplied by other suppliers)")
+        if not orders:
+            print("No pending/active supplier orders found.")
             input("\nPress Enter to return...")
             return
-        
-        print(
-            f"| {'Product Name': <20}" \
-            f"| {'Number of Suppliers': <20} |"
-        )
-        print("-" * 90)
 
-        for product in competitive_products:
-            print(
-                f"| {product['name'][:20]: <20}" \
-                f"| {product['num_suppliers'] if product['num_suppliers'] is not None else '0': <20} |"
-            )
+        print_supplier_orders_table(orders)
 
-        logger.info(f"Supplier '{supplier_id}' viewed competitive products.")
-        input("\nPress Enter to return...")
-    
+        print("\nOptions:")
+        print("1. View Supplier Order Details")
+        print("2. Update Supplier Order Status")
+        print("3. Return")
+
+        choice = input("Please enter your choice (1-3): ").strip()
+
+        if choice == "1":
+            so_id = input("Enter Supplier Order ID: ").strip()
+            if not so_id.isdigit():
+                print("Invalid Supplier Order ID.")
+                time.sleep(2)
+                continue
+            view_supplier_order_details(int(so_id), supplier_id)
+
+        elif choice == "2":
+            so_id = input("Enter Supplier Order ID: ").strip()
+            if not so_id.isdigit():
+                print("Invalid Supplier Order ID.")
+                time.sleep(2)
+                continue
+            update_supplier_order_status(int(so_id), supplier_id)
+
+        elif choice == "3":
+            return
+
+        else:
+            print("Invalid choice. Please try again.")
+            time.sleep(2)
+
+
 def view_total_sales_by_products(supplier_id):
     while True:
         clear_screen()
         print("Total Sales from Your Products")
         print("-----------------------------")
 
-        #show total sales amount from products supplied by this supplier
-        cursor = db.cursor(dictionary = True)
-        query = """
-            SELECT p.name, SUM(so.quantity * s.supplier_price) AS total_sales
-            FROM so_contains so JOIN supplies s ON so.prod_id = s.prod_id
-            JOIN product p ON s.prod_id = p.prod_id
-            WHERE s.supplier_id = %s
-            GROUP BY p.name
-            ORDER BY total_sales DESC
+        cursor = db.cursor(dictionary=True)
+        cursor.execute(
             """
-        cursor.execute(query, (supplier_id,))
+            SELECT p.prod_id, p.name,
+                   COALESCE(SUM(sc.quantity * sc.cost_at_purchase), 0) AS total_sales
+            FROM so_contains sc
+            JOIN product p ON sc.prod_id = p.prod_id
+            WHERE sc.supplier_id = %s
+            GROUP BY p.prod_id, p.name
+            ORDER BY total_sales DESC, p.name ASC
+            """,
+            (supplier_id,)
+        )
         sales_data = cursor.fetchall()
         cursor.close()
 
@@ -628,17 +832,20 @@ def view_total_sales_by_products(supplier_id):
             print("No sales data found for your products.")
             input("\nPress Enter to return...")
             return
-        
+
         print(
-            f"| {'Product Name': <20}" \
-            f"| {'Total Sales': <15} |"
+            f"| {'Product ID':<10} "
+            f"| {'Product Name':<20} "
+            f"| {'Total Sales':<15} |"
         )
-        print("-" * 90)
+        print("-" * 55)
 
         for data in sales_data:
+            total_sales = float(data["total_sales"]) if data["total_sales"] is not None else 0.0
             print(
-                f"| {data['name'][:20]: <20}" \
-                f"| ${data['total_sales'] if data['total_sales'] is not None else '0.00': <15.2f} |"
+                f"| {data['prod_id']:<10} "
+                f"| {data['name'][:20]:<20} "
+                f"| ${total_sales:<14.2f} |"
             )
 
         logger.info(f"Supplier '{supplier_id}' viewed total sales by products.")

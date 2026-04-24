@@ -6,64 +6,55 @@ from create_supplier_orders import create_supplier_orders_from_restock_list
 
 logger = get_logger(__name__)
 
+
 def store_manager_page(store_id, e_id):
-    try:
-        while True:
-            clear_screen()
-            print("Welcome to the Store Manager Page")
-            print("Here you can manage employees, approve restock requests, and view store activity.")
+    while True:
+        clear_screen()
+        print("Welcome to the Store Manager Page")
+        print("Here you can manage employees, approve restock requests, and view store activity.")
 
-            cursor = db.cursor(dictionary=True)
-            cursor.execute("SELECT branch_name FROM store WHERE st_id = %s", (store_id,))
-            store = cursor.fetchone()
-            cursor.close()
+        cursor = db.cursor(dictionary=True)
+        cursor.execute("SELECT branch_name FROM store WHERE st_id = %s", (store_id,))
+        store = cursor.fetchone()
+        cursor.close()
 
-            store_name = store["branch_name"] if store else "Unknown Store"
+        store_name = store["branch_name"] if store else "Unknown Store"
 
-            print(f"\nStore Name: {store_name}")
-            print("1. View Employees")
-            print("2. View Pending Restock Lists")
-            print("3. View Past Restock Lists")
-            print("4. View Store Orders")
-            print("5. View Store Pin")
-            print("6. View Supplier Pin")
-            print("7. Change Employee Salary")
-            print("8. Logout")
+        print(f"\nStore Name: {store_name}")
+        print("1. View Employees")
+        print("2. View Pending Restock Lists")
+        print("3. View Past Restock Lists")
+        print("4. View Store Orders")
+        print("5. View Store Pin")
+        print("6. View Supplier Pin")
+        print("7. Change Employee Salary")
+        print("8. Logout")
 
-            choice = input("Please enter your choice (1-8): ").strip()
+        choice = input("Please enter your choice (1-8): ").strip()
 
-            if choice == "1":
-                view_employees(store_id, e_id)
+        if choice == "1":
+            view_employees(store_id, e_id)
+        elif choice == "2":
+            view_pending_restock_list(store_id, e_id)
+        elif choice == "3":
+            view_past_restock_lists(store_id)
+        elif choice == "4":
+            view_store_orders(store_id)
+        elif choice == "5":
+            view_store_pin(store_id)
+        elif choice == "6":
+            view_supplier_pin(store_id)
+        elif choice == "7":
+            change_employee_salary(store_id, e_id)
+        elif choice == "8":
+            print("Logging out...")
+            logger.info(f"Store manager '{e_id}' logged out.")
+            time.sleep(2)
+            break
+        else:
+            print("Invalid choice. Please try again.")
+            time.sleep(2)
 
-            elif choice == "2":
-                view_pending_restock_list(store_id, e_id)
-
-            elif choice == "3":
-                view_past_restock_lists(store_id)
-
-            elif choice == "4":
-                view_store_orders(store_id)
-
-            elif choice == "5":
-                view_store_pin(store_id)
-
-            elif choice == "6":
-                view_supplier_pin(store_id)
-
-            elif choice == "7":
-                change_employee_salary(store_id, e_id)
-
-            elif choice == "8":
-                print("Logging out...")
-                logger.info(f"Store manager '{e_id}' logged out.")
-                time.sleep(2)
-                break
-
-            else:
-                print("Invalid choice. Please try again.")
-                time.sleep(2)
-    finally:
-        db.close()
 
 def view_employees(store_id, e_id):
     while True:
@@ -77,16 +68,14 @@ def view_employees(store_id, e_id):
 
         if choice == "1":
             view_current_employee_details(store_id, e_id)
-
         elif choice == "2":
             view_past_employee_details(store_id)
-
         elif choice == "3":
             return
-
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
+
 
 def view_current_employee_details(store_id, e_id):
     while True:
@@ -174,10 +163,11 @@ def view_current_employee_details(store_id, e_id):
             print("Invalid choice.")
             time.sleep(2)
 
+
 def view_past_employee_details(store_id):
     clear_screen()
     print("Viewing details for past employees:")
-    
+
     cursor = db.cursor(dictionary=True)
     cursor.execute(
         """
@@ -205,6 +195,7 @@ def view_past_employee_details(store_id):
             )
 
     input("\nPress Enter to return...")
+
 
 def view_pending_restock_list(store_id, e_id):
     while True:
@@ -346,6 +337,7 @@ def view_pending_restock_list(store_id, e_id):
             print("Invalid choice.")
             time.sleep(2)
 
+
 def approve_restock_list(list_id, store_id, employee_id):
     if not list_id:
         print("Restock List ID cannot be empty.")
@@ -385,8 +377,8 @@ def approve_restock_list(list_id, store_id, employee_id):
             """
             UPDATE restock_list
             SET restock_status = 'approved',
-                approved_by    = %s,
-                approved_at    = NOW()
+                approved_by = %s,
+                approved_at = NOW()
             WHERE list_id = %s AND store_id = %s
             """,
             (employee_id, list_id, store_id)
@@ -413,6 +405,7 @@ def approve_restock_list(list_id, store_id, employee_id):
         logger.info(f"Restock list '{list_id}' denied by '{employee_id}' for store '{store_id}'.")
 
     time.sleep(2)
+
 
 def deny_restock_list(list_id, store_id, employee_id):
     if not list_id:
@@ -459,6 +452,7 @@ def deny_restock_list(list_id, store_id, employee_id):
     print(f"Restock list {list_id} cancelled.")
     logger.info(f"Restock list '{list_id}' denied/cancelled by '{employee_id}'.")
     time.sleep(2)
+
 
 def view_past_restock_lists(store_id):
     while True:
@@ -507,13 +501,12 @@ def view_past_restock_lists(store_id):
         if choice == "1":
             list_id = input("Enter Restock List ID: ").strip()
             view_restock_list_details(list_id, store_id)
-
         elif choice == "2":
             return
-
         else:
             print("Invalid choice.")
             time.sleep(2)
+
 
 def view_restock_list_details(list_id, store_id):
     clear_screen()
@@ -545,6 +538,72 @@ def view_restock_list_details(list_id, store_id):
         cursor.close()
         input("\nPress Enter to return...")
         return
+
+    approver_name = (
+        f"{rl['approver_first']} {rl['approver_last']}"
+        if rl["approver_first"] and rl["approver_last"]
+        else "N/A"
+    )
+
+    print(f"Status      : {rl['restock_status']}")
+    print(f"Created At  : {rl['created_at']}")
+    print(f"Created By  : {rl['creator_first']} {rl['creator_last']}")
+    print(f"Approved At : {rl['approved_at'] or 'N/A'}")
+    print(f"Approved By : {approver_name}")
+    print("-" * 100)
+    print("Items:")
+
+    cursor.execute(
+        """
+        SELECT
+            rc.prod_id,
+            p.name AS product_name,
+            rc.supplier_id,
+            s.supplier_name,
+            rc.quantity,
+            sp.supplier_price,
+            (
+                SELECT MIN(sp2.supplier_price)
+                FROM supplies sp2
+                WHERE sp2.prod_id = rc.prod_id
+            ) AS lowest_supplier_price
+        FROM restock_contains rc
+        JOIN product p
+            ON rc.prod_id = p.prod_id
+        JOIN supplier s
+            ON rc.supplier_id = s.supplier_id
+        JOIN supplies sp
+            ON sp.prod_id = rc.prod_id
+           AND sp.supplier_id = rc.supplier_id
+        WHERE rc.list_id = %s
+        ORDER BY p.name, s.supplier_name
+        """,
+        (list_id,)
+    )
+    items = cursor.fetchall()
+    cursor.close()
+
+    if not items:
+        print("No items found in this restock list.")
+        input("\nPress Enter to return...")
+        return
+
+    for item in items:
+        cheapest_flag = ""
+        if float(item["supplier_price"]) == float(item["lowest_supplier_price"]):
+            cheapest_flag = "CHEAPEST"
+
+        print(
+            f"Product ID: {item['prod_id']} | "
+            f"{item['product_name']} | "
+            f"Supplier: {item['supplier_name']} ({item['supplier_id']}) | "
+            f"Qty: {item['quantity']} | "
+            f"Chosen Price: ${float(item['supplier_price']):.2f} | "
+            f"Lowest Available: ${float(item['lowest_supplier_price']):.2f} {cheapest_flag}"
+        )
+
+    input("\nPress Enter to return...")
+
 
 def view_store_orders(store_id):
     while True:
@@ -590,13 +649,12 @@ def view_store_orders(store_id):
         if choice == "1":
             order_id = input("Enter Order ID: ").strip()
             view_store_order_details(order_id, store_id)
-
         elif choice == "2":
             return
-
         else:
             print("Invalid choice.")
             time.sleep(2)
+
 
 def view_store_order_details(order_id, store_id):
     clear_screen()
@@ -677,6 +735,7 @@ def view_store_order_details(order_id, store_id):
         )
 
     input("\nPress Enter to return...")
+
 
 def change_employee_salary(store_id, manager_e_id):
     while True:
@@ -768,6 +827,7 @@ def change_employee_salary(store_id, manager_e_id):
         )
         time.sleep(2)
 
+
 def view_store_pin(store_id):
     print(f"Viewing Store PIN for Store {store_id}")
 
@@ -782,6 +842,7 @@ def view_store_pin(store_id):
         print("Store not found.")
 
     input("\nPress Enter to return...")
+
 
 def view_supplier_pin(store_id):
     print(f"Viewing Supplier PIN for Store {store_id}")

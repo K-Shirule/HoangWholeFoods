@@ -1,0 +1,42 @@
+2026-04-23 08:27:09,226 | WARNING | auth | supplier '' - username not found in database.
+2026-04-23 08:27:24,994 | WARNING | auth | Supplier attempted to register with invalid company pin.
+2026-04-23 08:27:43,928 | WARNING | auth | employee 'store@hwf.com' - username not found in database.
+2026-04-23 08:28:04,842 | WARNING | auth | employee 'store@hwf.com' - username not found in database.
+2026-04-23 08:30:05,834 | INFO | store_manager_menu | Store manager '1' logged out.
+2026-04-23 08:31:56,568 | INFO | auth | New supplier registered and given id: '1'.
+2026-04-23 08:50:12,315 | INFO | supplier_page | Supplier '1' added existing product '4' to supplies.
+2026-04-23 09:12:41,281 | INFO | supplier_page | Supplier '1' removed product '4' from supplies.
+2026-04-23 09:21:58,499 | INFO | supplier_page | Supplier '1' added existing product '5' to supplies.
+2026-04-23 09:22:03,776 | INFO | supplier_page | Supplier '1' logged out successfully.
+2026-04-23 09:22:56,510 | WARNING | auth | supplier 'supplier' - username not found in database.
+2026-04-23 09:24:14,293 | INFO | supplier_page | Supplier '1' removed product '5' from supplies.
+2026-04-23 09:24:58,811 | INFO | supplier_page | Supplier '1' added existing product '5' to supplies.
+2026-04-23 09:27:28,768 | INFO | supplier_page | Supplier '1' created new product 'Celery' and added it to supplies.
+2026-04-23 09:33:25,190 | INFO | supplier_page | Supplier '1' logged out successfully.
+2026-04-23 09:42:43,550 | INFO | auth | New supplier registered and given id: '2'.
+2026-04-23 09:43:46,477 | INFO | auth | New supplier registered and given id: '3'.
+2026-04-23 09:45:01,061 | INFO | supplier_page | Supplier '2' added existing product '11' to supplies.
+2026-04-23 09:45:27,267 | INFO | supplier_page | Supplier '2' added existing product '7' to supplies.
+2026-04-23 09:45:51,136 | INFO | supplier_page | Supplier '2' logged out successfully.
+2026-04-23 09:47:31,343 | INFO | supplier_page | Supplier '3' added existing product '8' to supplies.
+2026-04-23 09:48:58,411 | INFO | supplier_page | Supplier '3' created new product 'Water bottles 24 pack' and added it to supplies.
+2026-04-23 09:49:40,698 | INFO | supplier_page | Supplier '3' logged out successfully.
+2026-04-23 09:49:58,482 | WARNING | auth | employee 'inventory@gmail.com' - username not found in database.
+2026-04-23 09:51:32,057 | INFO | inventory_manager_menu | Employee 5 added product 11 (quantity: 20) to restock list for store 3.
+2026-04-23 10:28:40,336 | INFO | inventory_manager_menu | Employee 5 added product 11 from supplier 1 (quantity: 20) to restock list for store 3.
+2026-04-23 10:29:09,902 | INFO | inventory_manager_menu | Employee 5 added product 7 from supplier 2 (quantity: 10) to restock list for store 3.
+2026-04-23 10:36:49,567 | WARNING | auth | employee 'jim.halpert@hwf.com' entered incorrect password.
+2026-04-23 10:37:09,627 | WARNING | auth | employee 'jim.halpert@hef.com' - username not found in database.
+2026-04-23 19:00:36,165 | INFO | store_manager_menu | Store manager '1' logged out.
+2026-04-23 19:00:53,867 | WARNING | auth | employee 'arry.potta@hwf.com' entered incorrect password.
+2026-04-23 19:03:38,933 | INFO | create_supplier_orders | Supplier order '0' created for supplier 2 using restock list 1 for store 3
+2026-04-23 19:08:38,528 | INFO | create_supplier_orders | Supplier order '1' created for supplier 1 using restock list 1 for store 3
+2026-04-23 19:08:38,545 | INFO | create_supplier_orders | Supplier order '1' created for supplier 2 using restock list 1 for store 3
+2026-04-23 19:08:41,555 | INFO | store_manager_menu | Restock list '1' approved by '3' for store '3'.
+2026-04-23 19:14:18,457 | INFO | store_manager_menu | Store manager '3' logged out.
+2026-04-23 19:18:00,282 | INFO | supplier_page | Supplier '1' updated supplier order '1' to 'shipped'.
+2026-04-23 19:21:50,251 | INFO | store_manager_menu | Store manager '3' logged out.
+2026-04-23 19:29:35,339 | INFO | store_manager_menu | Store manager '3' logged out.
+2026-04-23 19:34:33,383 | WARNING | auth | employee 'inventory123' - username not found in database.
+2026-04-23 19:34:53,466 | WARNING | auth | employee 'inventory@hwf.com' entered incorrect password.
+2026-04-23 19:35:41,414 | WARNING | auth | employee 'inventory@hwf.com' entered incorrect password.
