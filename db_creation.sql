@@ -86,6 +86,8 @@ CREATE TABLE employee (
 ALTER TABLE store
 ADD CONSTRAINT fk_store_manager
 FOREIGN KEY (manager_e_id) REFERENCES employee(e_id);
+ADD CONSTRAINT fk_store_manager
+FOREIGN KEY (manager_e_id) REFERENCES employee(e_id);
 
 CREATE TABLE orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -94,6 +96,7 @@ CREATE TABLE orders (
     total_amount DECIMAL(10,2) UNSIGNED,
     order_type VARCHAR(20),
     order_status VARCHAR(20),
+    c_id INT,
     c_id INT,
     st_id INT NOT NULL,
     e_id INT,
@@ -104,6 +107,7 @@ CREATE TABLE orders (
 
 CREATE TABLE shopping_cart (
     cart_id INT AUTO_INCREMENT PRIMARY KEY,
+    created_at timestamp NOT NULL default current_timestamp,
     created_at timestamp NOT NULL default current_timestamp,
     cart_status ENUM('new', 'done') NOT NULL,
     c_id INT NOT NULL UNIQUE,
@@ -120,6 +124,7 @@ CREATE TABLE review (
     review_id INT AUTO_INCREMENT PRIMARY KEY,
     rating ENUM('1', '2', '3', '4', '5'),
     r_comment TEXT,
+    created_at DATETIME NOT NULL default current_timestamp,
     created_at DATETIME NOT NULL default current_timestamp,
     c_id INT NOT NULL,
     prod_id INT NOT NULL,
@@ -197,6 +202,8 @@ CREATE TABLE restock_list (
     store_id INT NOT NULL,
     created_by INT NOT NULL,
     approved_by INT,
+    restock_status VARCHAR(50) NOT NULL,
+    created_at DATETIME NOT NULL default current_timestamp,
     restock_status VARCHAR(50) NOT NULL,
     created_at DATETIME NOT NULL default current_timestamp,
     approved_at DATETIME,

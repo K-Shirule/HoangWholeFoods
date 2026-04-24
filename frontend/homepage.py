@@ -1,11 +1,10 @@
 # main.py
 
-import os
 import sys
 
-from frontend.auth import login_user, register_user
-from frontend.utils import clear_screen
-from frontend.db_connector import db
+from auth import login_user, register_user
+from utils import clear_screen, print_load
+from db_connector import db
 
 def pause():
     input("\nPress Enter to continue...")
@@ -17,7 +16,7 @@ def login():
     print("3. Supplier")
     
     role_choice = input("\nEnter your choice: ").strip()
-
+    clear_screen()
     if role_choice == "1":
         login_user("customer")
     elif role_choice == "2":
@@ -27,7 +26,6 @@ def login():
     else:
         print("\nInvalid choice.")
         pause()
-    login_user(role_choice)
     return
 
 def register():
@@ -47,7 +45,6 @@ def register():
     else:
         print("\nInvalid choice.")
         pause()
-    register_user(role_choice)
     return
 
 def show_homepage():
@@ -63,10 +60,11 @@ def show_homepage():
         choice = input("\nEnter your choice: ").strip()
 
         if choice == "1":
+            clear_screen()
             login()
         elif choice == "2":
-            #register_user()
-            pause()
+            register()
+            clear_screen()
         elif choice == "3":
             print("\nGoodbye.")
             db.close()
