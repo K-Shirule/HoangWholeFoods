@@ -1,3 +1,9 @@
+CREATE USER 'admin'@'localhost' IDENTIFIED BY '1234';
+
+GRANT ALL PRIVILEGES ON hoangwholefoods.* TO 'admin'@'localhost';
+
+FLUSH PRIVILEGES;
+
 INSERT INTO store (location, branch_name, phone, email, address, store_pin, supplier_pin)
 VALUES
 ('San Jose, CA', 'Downtown SJ', '4085551234', 'sj_downtown@hwf.com', '123 Market St', 'K7M3X9', 'T5R8Q2'),
