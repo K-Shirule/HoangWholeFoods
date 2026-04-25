@@ -424,7 +424,7 @@ def view_supplier_orders_for_store(store_id):
             s.supplier_name,
             so.list_id,
             so.date_of_order,
-            so.status,
+            so.so_status AS status,
             so.expected_delivery_date,
             so.received_date,
             so.tracking_number,
@@ -534,6 +534,20 @@ def add_new_product(store_id, employee_id):
         time.sleep(2)
         return
 
+    product_row = _fetch_one(
+        """
+        SELECT prod_id, name
+        FROM product
+        WHERE prod_id = %s
+        """,
+        (int(product_id),),
+    )
+    if not product_row:
+        print("That product ID does not exist in the product catalog.")
+        print("Use 'View Product Catalog' to find a valid Product ID first.")
+        time.sleep(3)
+        return
+
     existing_stock = _fetch_one(
         """
         SELECT quantity
@@ -562,7 +576,7 @@ def add_new_product(store_id, employee_id):
 
     print("Product added/updated in inventory.")
     logger.info(
-        f"Product {product_id} (quantity: {quantity}) added to inventory "
+        f"Product {product_id} - {product_row['name']} (quantity: {quantity}) added to inventory "
         f"for store {store_id} by employee {employee_id}."
     )
     time.sleep(2)
@@ -581,12 +595,12 @@ def receive_supplier_orders_menu(store_id, employee_id):
                 supplier_id,
                 list_id,
                 date_of_order,
-                status,
+                so_status AS status,
                 expected_delivery_date,
                 tracking_number
             FROM supplier_order
             WHERE st_id = %s
-              AND status = 'delivered'
+            AND so_status = 'delivered'
             ORDER BY expected_delivery_date, so_id
             """,
             (store_id,),
@@ -637,7 +651,7 @@ def receive_supplier_order(so_id, supplier_id, store_id, employee_id):
 
     supplier_order = _fetch_one(
         """
-        SELECT so_id, supplier_id, st_id, status, list_id
+        SELECT so_id, supplier_id, st_id, so_status AS status, list_id
         FROM supplier_order
         WHERE so_id = %s AND supplier_id = %s
         """,
@@ -731,7 +745,7 @@ def receive_supplier_order(so_id, supplier_id, store_id, employee_id):
         cursor.execute(
             """
             UPDATE supplier_order
-            SET status = 'received',
+            SET so_status = 'received',
                 received_date = CURDATE()
             WHERE so_id = %s AND supplier_id = %s
             """,
@@ -772,7 +786,7 @@ def sync_restock_list_status(list_id, store_id):
 
     rows = _fetch_all(
         """
-        SELECT status
+        SELECT so_status AS status
         FROM supplier_order
         WHERE list_id = %s AND st_id = %s
         """,

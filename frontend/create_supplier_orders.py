@@ -80,7 +80,7 @@ def create_supplier_orders_from_restock_list(list_id, store_id):
                     date_of_order,
                     total_amount,
                     payment_method,
-                    status,
+                    so_status,
                     expected_delivery_date,
                     received_date,
                     tracking_number,

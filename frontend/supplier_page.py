@@ -22,7 +22,7 @@ def get_supplier_order_header(so_id, supplier_id):
     cursor.execute(
         """
         SELECT supplier_id, so_id, date_of_order, total_amount, payment_method,
-               status, expected_delivery_date, received_date, tracking_number,
+            so_status AS status, expected_delivery_date, received_date, tracking_number,
                st_id, list_id
         FROM supplier_order
         WHERE so_id = %s AND supplier_id = %s
@@ -188,7 +188,7 @@ def view_supplier_orders(supplier_id):
         cursor.execute(
             """
             SELECT supplier_id, so_id, date_of_order, total_amount, payment_method,
-                   status, expected_delivery_date, received_date, tracking_number,
+            so_status AS status, expected_delivery_date, received_date, tracking_number,
                    st_id, list_id
             FROM supplier_order
             WHERE supplier_id = %s
@@ -357,7 +357,7 @@ def update_supplier_order_status(so_id, supplier_id):
         cursor.execute(
             """
             UPDATE supplier_order
-            SET status = %s,
+            SET so_status = %s,
                 tracking_number = %s,
                 expected_delivery_date = %s,
                 received_date = %s
@@ -756,11 +756,11 @@ def view_pending_supplier_orders(supplier_id):
         cursor.execute(
             """
             SELECT supplier_id, so_id, date_of_order, total_amount, payment_method,
-                   status, expected_delivery_date, received_date, tracking_number,
+            so_status AS status, expected_delivery_date, received_date, tracking_number,
                    st_id, list_id
             FROM supplier_order
             WHERE supplier_id = %s
-              AND LOWER(COALESCE(status, 'pending')) <> 'received'
+          AND LOWER(COALESCE(so_status, 'pending')) <> 'received'
             ORDER BY date_of_order DESC, so_id DESC
             """,
             (supplier_id,)
