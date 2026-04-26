@@ -1,3 +1,4 @@
+# SJSU CMPE 138 SPRING 2026 TEAM6
 import time
 
 from db_connector import db
@@ -16,7 +17,6 @@ def _fetch_all(query, params=None):
     cursor.close()
     return rows
 
-
 def _fetch_one(query, params=None):
     cursor = db.cursor(dictionary=True)
     cursor.execute(query, params or ())
@@ -24,13 +24,11 @@ def _fetch_one(query, params=None):
     cursor.close()
     return row
 
-
 def _execute(query, params=None):
     cursor = db.cursor()
     cursor.execute(query, params or ())
     db.commit()
     cursor.close()
-
 
 def _execute_insert(query, params=None):
     cursor = db.cursor()
@@ -39,7 +37,6 @@ def _execute_insert(query, params=None):
     last_id = cursor.lastrowid
     cursor.close()
     return last_id
-
 
 def _print_inventory_rows(rows):
     if not rows:
@@ -56,7 +53,6 @@ def _print_inventory_rows(rows):
             f"Stock: {row['quantity']} | "
             f"Size: {size_text}"
         )
-
 
 def _calculate_weighted_price(current_qty, current_price, incoming_qty, incoming_cost):
     incoming_sell_price = round(float(incoming_cost) * RETAIL_MARKUP, 2)
@@ -75,7 +71,7 @@ def _calculate_weighted_price(current_qty, current_price, incoming_qty, incoming
 
     return round(weighted_average, 2)
 
-
+#landing page/menu for invneotry manager
 def inventory_manager_menu(store_id, employee_id):
     while True:
         clear_screen()
@@ -118,7 +114,6 @@ def inventory_manager_menu(store_id, employee_id):
             print("\nInvalid option. Please try again.")
             time.sleep(2)
 
-
 def view_inventory(store_id):
     clear_screen()
     print("\nViewing inventory...")
@@ -146,7 +141,6 @@ def view_inventory(store_id):
 
     print("Press Enter to return to the menu.")
     input()
-
 
 def view_supplier_products(store_id, employee_id):
     print("\nViewing supplier products...")
@@ -217,7 +211,6 @@ def view_supplier_products(store_id, employee_id):
         else:
             print("Invalid option.")
             time.sleep(2)
-
 
 def add_product_to_restock_list(product_id, supplier_id, quantity, store_id, employee_id):
     print("\nAdding product to restock list...")
@@ -311,7 +304,6 @@ def add_product_to_restock_list(product_id, supplier_id, quantity, store_id, emp
     )
     time.sleep(2)
 
-
 def view_restock_list(store_id, employee_id):
     while True:
         clear_screen()
@@ -371,7 +363,6 @@ def view_restock_list(store_id, employee_id):
         else:
             print("Invalid option.")
             time.sleep(2)
-
 
 def remove_product_from_restock_list(product_id, supplier_id, store_id, employee_id):
     print("\nRemoving product from restock list...")
@@ -484,7 +475,6 @@ def view_past_restock_lists(store_id):
 
     input("\nPress Enter to continue...")
 
-
 def remove_product(store_id, employee_id):
     print("\nRemove product from inventory")
 
@@ -522,7 +512,6 @@ def remove_product(store_id, employee_id):
         f"{store_id} by employee {employee_id}."
     )
     time.sleep(2)
-
 
 def add_new_product(store_id, employee_id):
     print("\nAdd product to inventory")
@@ -581,7 +570,6 @@ def add_new_product(store_id, employee_id):
     )
     time.sleep(2)
 
-
 def receive_supplier_orders_menu(store_id, employee_id):
     while True:
         clear_screen()
@@ -635,7 +623,6 @@ def receive_supplier_orders_menu(store_id, employee_id):
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
-
 
 def receive_supplier_order(so_id, supplier_id, store_id, employee_id):
     clear_screen()
@@ -779,7 +766,6 @@ def receive_supplier_order(so_id, supplier_id, store_id, employee_id):
     )
     time.sleep(2)
 
-
 def sync_restock_list_status(list_id, store_id):
     if list_id is None:
         return
@@ -813,7 +799,6 @@ def sync_restock_list_status(list_id, store_id):
         """,
         (next_status, list_id, store_id),
     )
-
 
 def view_products():
     clear_screen()

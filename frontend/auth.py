@@ -1,3 +1,4 @@
+# SJSU CMPE 138 SPRING 2026 TEAM6
 import time
 import bcrypt
 from db_connector import db
@@ -148,8 +149,8 @@ def register_user(role):
         if row:
             print("\nSupplier pin accepted.")
         else:
-            print("\nInvalid supplier pin.")
             logger.warning("Supplier attempted to register with invalid company pin.")
+            print_load("Invalid supplier pin. Returning to main menu", 2)
             cursor.close()
             return
 
@@ -361,6 +362,7 @@ def get_employee_info(username):
     finally:
         cursor.close()
 
+#check syntax of email
 def get_valid_email():
     while True:
         email = input("Enter email: ").strip().lower()
@@ -371,6 +373,7 @@ def get_valid_email():
         else:
             print("Invalid email format. Please try again.")
 
+#check syntax of phone #
 def get_valid_phone():
     while True:
         phone = input("Enter phone number (digits only): ").strip()

@@ -1,3 +1,4 @@
+# SJSU CMPE 138 SPRING 2026 TEAM6
 import time
 import random
 from db_connector import db
@@ -6,7 +7,7 @@ from logger_config import get_logger
 
 logger = get_logger(__name__)
 
-
+#landing page/func for floor _ employee
 def floor_employee_page(store_id, employee_id):
     try:
         while True:
@@ -41,7 +42,7 @@ def floor_employee_page(store_id, employee_id):
     finally:
         db.close()
 
-
+#since we don't hvae a barcode reader we will randomize the order 
 def randomize_order(store_id):
     cursor = db.cursor(dictionary=True)
     cursor.execute(
@@ -73,8 +74,7 @@ def randomize_order(store_id):
         order_items[prod_id] = qty
 
     return order_items
-
-
+#past returns
 def get_return_summary(order_id, prod_id):
     cursor = db.cursor(dictionary=True)
 
@@ -114,8 +114,7 @@ def get_return_summary(order_id, prod_id):
         "remaining_qty": original_qty - approved_returned_qty,
         "price_at_purchase": float(order_item["price_at_purchase"])
     }
-
-
+#func to handle cusotmers that come into store
 def process_instore_orders(store_id, employee_id):
     while True:
         clear_screen()
@@ -365,8 +364,7 @@ def process_instore_orders(store_id, employee_id):
             else:
                 print("Invalid choice. Please try again.")
                 time.sleep(2)
-
-
+#approve or deny returns
 def process_return_requests(store_id, employee_id):
     while True:
         clear_screen()
@@ -517,8 +515,7 @@ def process_return_requests(store_id, employee_id):
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
-
-
+#see pending return request details raised by customers
 def view_return_request_details(return_id, store_id):
     clear_screen()
     print(f"Viewing Return Request ID: {return_id}")
@@ -575,7 +572,6 @@ def view_return_request_details(return_id, store_id):
     print(f"Reason            : {record['return_reason'] or 'N/A'}")
 
     input("\nPress Enter to return...")
-
 
 def approve_return(return_id, store_id, employee_id):
     clear_screen()
@@ -680,7 +676,6 @@ def approve_return(return_id, store_id, employee_id):
     logger.info(f"Floor employee '{employee_id}' approved return '{return_id}' for store '{store_id}'.")
     time.sleep(2)
 
-
 def deny_return(return_id, store_id, employee_id):
     clear_screen()
     print(f"Denying Return ID: {return_id}...")
@@ -741,7 +736,7 @@ def deny_return(return_id, store_id, employee_id):
     logger.info(f"Floor employee '{employee_id}' denied return '{return_id}' for store '{store_id}'.")
     time.sleep(2)
 
-
+#return for a customer that came into store to return
 def process_instore_return(store_id, employee_id):
     while True:
         clear_screen()

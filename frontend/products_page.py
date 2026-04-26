@@ -1,3 +1,4 @@
+# SJSU CMPE 138 SPRING 2026 TEAM6
 import time
 
 from db_connector import db
@@ -8,24 +9,33 @@ from logger_config import get_logger
 logger = get_logger(__name__)
 
 
-
+#helper functions for operations related to customer and product interaction and general product functions
 def _fetch_all(query, params=None):
     cursor = db.cursor(dictionary=True)
-    cursor.execute(query, params or ())
-    return cursor.fetchall()
-
+    try:
+        cursor.execute(query, params or ())
+        return cursor.fetchall()
+    finally:
+        cursor.close()
 
 def _fetch_one(query, params=None):
     cursor = db.cursor(dictionary=True)
-    cursor.execute(query, params or ())
-    return cursor.fetchone()
-
+    try:
+        cursor.execute(query, params or ())
+        return cursor.fetchone()
+    finally:
+        cursor.close()
 
 def _execute(query, params=None):
     cursor = db.cursor(dictionary=True)
-    cursor.execute(query, params or ())
-    db.commit()
-
+    try:
+        cursor.execute(query, params or ())
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        cursor.close()
 
 def _print_product_rows(rows):
     if not rows:
@@ -52,7 +62,6 @@ def _print_product_rows(rows):
             f"Stock: {row['stock_quantity']}"
         )
 
-
 def _get_store_products(store_id):
     return _fetch_all(
         """
@@ -74,7 +83,6 @@ def _get_store_products(store_id):
         """,
         (store_id,),
     )
-
 
 def view_product_catalog(customer_id, store_id):
     while True:
@@ -159,6 +167,7 @@ def search_products(store_id):
             print(f"\nShowing results for product name containing '{keyword}'...")
             _print_product_rows(rows)
             input("\nPress Enter to continue...")
+            category_formatted = f"%{category}%"
 
         elif choice == "2":
             category = input("Enter category name: ").strip()
@@ -178,10 +187,10 @@ def search_products(store_id):
                 JOIN category AS c
                     ON p.category_id = c.cat_id
                 WHERE s.store_id = %s
-                  AND (c.name LIKE %s OR c.description LIKE %s)
+                  AND (c.name LIKE \% %s OR c.description LIKE %s)
                 ORDER BY p.name
                 """,
-                (store_id, category, category),
+                (store_id, category_formatted, category_formatted),
             )
 
             print(f"\nShowing results for category '{category}'...")

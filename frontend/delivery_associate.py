@@ -1,3 +1,4 @@
+# SJSU CMPE 138 SPRING 2026 TEAM6
 import time
 from db_connector import db
 from utils import clear_screen
@@ -5,7 +6,7 @@ from logger_config import get_logger
 
 logger = get_logger(__name__)
 
-
+#see past deliveries
 def get_delivery_record(delivery_id, store_id, employee_id=None):
     """
     Fetch a delivery and confirm it belongs to the given store.
@@ -40,7 +41,7 @@ def get_delivery_record(delivery_id, store_id, employee_id=None):
     cursor.close()
     return record
 
-
+#main landing page for delivery assoc.
 def delivery_associate_page(store_id, employee_id):
     while True:
         clear_screen()
@@ -76,7 +77,7 @@ def delivery_associate_page(store_id, employee_id):
             print("Invalid choice. Please try again.")
             time.sleep(2)
 
-
+#these are delivieries that are requested by cystomer but not assigned/chosen by delivery assoc. yet
 def view_pending_deliveries(store_id):
     clear_screen()
     print("Pending Deliveries")
@@ -115,7 +116,6 @@ def view_pending_deliveries(store_id):
             )
 
     input("\nPress Enter to return...")
-
 
 def claim_delivery(store_id, employee_id):
     clear_screen()
@@ -197,7 +197,7 @@ def claim_delivery(store_id, employee_id):
     logger.info(f"Delivery associate '{employee_id}' claimed delivery '{delivery_id}'.")
     time.sleep(2)
 
-
+#func to show the assoc the deliveries they have claimed/picked to deliver
 def view_my_deliveries(store_id, employee_id):
     while True:
         clear_screen()
@@ -260,7 +260,6 @@ def view_my_deliveries(store_id, employee_id):
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
-
 
 def view_delivery_details(delivery_id, store_id, employee_id):
     clear_screen()
@@ -327,6 +326,7 @@ def view_delivery_details(delivery_id, store_id, employee_id):
 
     input("\nPress Enter to return...")
 
+#update status throughout delivery process
 def update_delivery_status(store_id, employee_id):
     clear_screen()
     print("Update Delivery Status")

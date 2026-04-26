@@ -1,3 +1,4 @@
+# SJSU CMPE 138 SPRING 2026 TEAM6
 import time
 from datetime import datetime
 
@@ -10,100 +11,7 @@ logger = get_logger(__name__)
 VALID_SUPPLIER_ORDER_STATUSES = ("pending", "shipped", "delivered", "received")
 
 
-def parse_date(date_text):
-    try:
-        return datetime.strptime(date_text, "%Y-%m-%d").date()
-    except ValueError:
-        return None
-
-
-def get_supplier_order_header(so_id, supplier_id):
-    cursor = db.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT supplier_id, so_id, date_of_order, total_amount, payment_method,
-            so_status AS status, expected_delivery_date, received_date, tracking_number,
-               st_id, list_id
-        FROM supplier_order
-        WHERE so_id = %s AND supplier_id = %s
-        """,
-        (so_id, supplier_id)
-    )
-    order = cursor.fetchone()
-    cursor.close()
-    return order
-
-
-def get_supplier_order_lines(so_id, supplier_id):
-    cursor = db.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT sc.supplier_id, sc.so_id, sc.prod_id, p.name,
-               sc.quantity, sc.cost_at_purchase
-        FROM so_contains sc
-        JOIN product p ON sc.prod_id = p.prod_id
-        WHERE sc.so_id = %s AND sc.supplier_id = %s
-        ORDER BY p.name ASC
-        """,
-        (so_id, supplier_id)
-    )
-    rows = cursor.fetchall()
-    cursor.close()
-    return rows
-
-
-def get_supplier_product(supplier_id, prod_id):
-    cursor = db.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT supplier_id, prod_id, supplier_price
-        FROM supplies
-        WHERE supplier_id = %s AND prod_id = %s
-        """,
-        (supplier_id, prod_id)
-    )
-    row = cursor.fetchone()
-    cursor.close()
-    return row
-
-
-def get_product(prod_id):
-    cursor = db.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT prod_id, category_id, name, description, unit_price, units, unit_type
-        FROM product
-        WHERE prod_id = %s
-        """,
-        (prod_id,)
-    )
-    row = cursor.fetchone()
-    cursor.close()
-    return row
-
-
-def category_exists(category_id):
-    cursor = db.cursor()
-    cursor.execute("SELECT cat_id FROM category WHERE cat_id = %s", (category_id,))
-    row = cursor.fetchone()
-    cursor.close()
-    return row is not None
-
-
-def get_all_categories():
-    cursor = db.cursor(dictionary=True)
-    cursor.execute(
-        """
-        SELECT cat_id, name, description
-        FROM category
-        ORDER BY name ASC
-        """
-    )
-    rows = cursor.fetchall()
-    cursor.close()
-    return rows
-
-
+#main landing page/function for supplier
 def supplier_page(supplier_id):
     while True:
         clear_screen()
@@ -140,7 +48,6 @@ def supplier_page(supplier_id):
             print("Invalid choice. Please try again.")
             time.sleep(2)
 
-
 def print_supplier_orders_table(orders):
     print(
         f"| {'Supplier ID':<11} "
@@ -176,7 +83,6 @@ def print_supplier_orders_table(orders):
             f"| {str(order['st_id']) if order['st_id'] is not None else 'NULL':<7} "
             f"| {str(order['list_id']) if order['list_id'] is not None else 'NULL':<7} |"
         )
-
 
 def view_supplier_orders(supplier_id):
     while True:
@@ -236,7 +142,6 @@ def view_supplier_orders(supplier_id):
             print("Invalid choice. Please try again.")
             time.sleep(2)
 
-
 def view_supplier_order_details(so_id, supplier_id):
     clear_screen()
     print(f"Viewing Supplier Order ID: {so_id}")
@@ -283,7 +188,6 @@ def view_supplier_order_details(so_id, supplier_id):
         )
 
     input("\nPress Enter to return...")
-
 
 def update_supplier_order_status(so_id, supplier_id):
     order = get_supplier_order_header(so_id, supplier_id)
@@ -373,7 +277,6 @@ def update_supplier_order_status(so_id, supplier_id):
         time.sleep(2)
         return
 
-
 def view_supplied_products(supplier_id):
     while True:
         clear_screen()
@@ -445,7 +348,6 @@ def view_supplied_products(supplier_id):
             )
 
         input("\nPress Enter to return...")
-
 
 def add_supplied_product(supplier_id):
     while True:
@@ -665,7 +567,6 @@ def add_supplied_product(supplier_id):
             print("Invalid choice. Try again.")
             time.sleep(2)
 
-
 def remove_supplied_product(supplier_id):
     while True:
         clear_screen()
@@ -745,7 +646,6 @@ def remove_supplied_product(supplier_id):
         logger.info(f"Supplier '{supplier_id}' removed product '{prod_id}' from supplies.")
         time.sleep(2)
 
-
 def view_pending_supplier_orders(supplier_id):
     while True:
         clear_screen()
@@ -805,7 +705,6 @@ def view_pending_supplier_orders(supplier_id):
             print("Invalid choice. Please try again.")
             time.sleep(2)
 
-
 def view_total_sales_by_products(supplier_id):
     while True:
         clear_screen()
@@ -851,3 +750,90 @@ def view_total_sales_by_products(supplier_id):
         logger.info(f"Supplier '{supplier_id}' viewed total sales by products.")
         input("\nPress Enter to return...")
         return
+
+def parse_date(date_text):
+    try:
+        return datetime.strptime(date_text, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+def get_supplier_order_header(so_id, supplier_id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT supplier_id, so_id, date_of_order, total_amount, payment_method,
+            so_status AS status, expected_delivery_date, received_date, tracking_number,
+               st_id, list_id
+        FROM supplier_order
+        WHERE so_id = %s AND supplier_id = %s
+        """,
+        (so_id, supplier_id)
+    )
+    order = cursor.fetchone()
+    cursor.close()
+    return order
+
+def get_supplier_order_lines(so_id, supplier_id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT sc.supplier_id, sc.so_id, sc.prod_id, p.name,
+               sc.quantity, sc.cost_at_purchase
+        FROM so_contains sc
+        JOIN product p ON sc.prod_id = p.prod_id
+        WHERE sc.so_id = %s AND sc.supplier_id = %s
+        ORDER BY p.name ASC
+        """,
+        (so_id, supplier_id)
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    return rows
+
+def get_supplier_product(supplier_id, prod_id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT supplier_id, prod_id, supplier_price
+        FROM supplies
+        WHERE supplier_id = %s AND prod_id = %s
+        """,
+        (supplier_id, prod_id)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    return row
+
+def get_product(prod_id):
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT prod_id, category_id, name, description, unit_price, units, unit_type
+        FROM product
+        WHERE prod_id = %s
+        """,
+        (prod_id,)
+    )
+    row = cursor.fetchone()
+    cursor.close()
+    return row
+
+def category_exists(category_id):
+    cursor = db.cursor()
+    cursor.execute("SELECT cat_id FROM category WHERE cat_id = %s", (category_id,))
+    row = cursor.fetchone()
+    cursor.close()
+    return row is not None
+
+def get_all_categories():
+    cursor = db.cursor(dictionary=True)
+    cursor.execute(
+        """
+        SELECT cat_id, name, description
+        FROM category
+        ORDER BY name ASC
+        """
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    return rows

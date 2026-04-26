@@ -1,5 +1,4 @@
-# main.py
-
+# SJSU CMPE 138 SPRING 2026 TEAM6
 import sys
 
 from auth import login_user, register_user
@@ -63,8 +62,8 @@ def show_homepage():
             clear_screen()
             login()
         elif choice == "2":
-            register()
             clear_screen()
+            register()
         elif choice == "3":
             print("\nGoodbye.")
             db.close()

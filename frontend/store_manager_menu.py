@@ -1,3 +1,4 @@
+# SJSU CMPE 138 SPRING 2026 TEAM6
 import time
 from db_connector import db
 from logger_config import get_logger
@@ -6,7 +7,7 @@ from create_supplier_orders import create_supplier_orders_from_restock_list
 
 logger = get_logger(__name__)
 
-
+#store manager landing menu
 def store_manager_page(store_id, e_id):
     while True:
         clear_screen()
@@ -55,7 +56,7 @@ def store_manager_page(store_id, e_id):
             print("Invalid choice. Please try again.")
             time.sleep(2)
 
-
+#helper functions to do all operations of the manager menu
 def view_employees(store_id, e_id):
     while True:
         clear_screen()
@@ -75,7 +76,6 @@ def view_employees(store_id, e_id):
         else:
             print("Invalid choice. Please try again.")
             time.sleep(2)
-
 
 def view_current_employee_details(store_id, e_id):
     while True:
@@ -163,7 +163,6 @@ def view_current_employee_details(store_id, e_id):
             print("Invalid choice.")
             time.sleep(2)
 
-
 def view_past_employee_details(store_id):
     clear_screen()
     print("Viewing details for past employees:")
@@ -195,7 +194,6 @@ def view_past_employee_details(store_id):
             )
 
     input("\nPress Enter to return...")
-
 
 def view_pending_restock_list(store_id, e_id):
     while True:
@@ -337,7 +335,6 @@ def view_pending_restock_list(store_id, e_id):
             print("Invalid choice.")
             time.sleep(2)
 
-
 def approve_restock_list(list_id, store_id, employee_id):
     if not list_id:
         print("Restock List ID cannot be empty.")
@@ -406,7 +403,6 @@ def approve_restock_list(list_id, store_id, employee_id):
 
     time.sleep(2)
 
-
 def deny_restock_list(list_id, store_id, employee_id):
     if not list_id:
         print("Restock List ID cannot be empty.")
@@ -452,7 +448,6 @@ def deny_restock_list(list_id, store_id, employee_id):
     print(f"Restock list {list_id} cancelled.")
     logger.info(f"Restock list '{list_id}' denied/cancelled by '{employee_id}'.")
     time.sleep(2)
-
 
 def view_past_restock_lists(store_id):
     while True:
@@ -506,7 +501,6 @@ def view_past_restock_lists(store_id):
         else:
             print("Invalid choice.")
             time.sleep(2)
-
 
 def view_restock_list_details(list_id, store_id):
     clear_screen()
@@ -604,7 +598,6 @@ def view_restock_list_details(list_id, store_id):
 
     input("\nPress Enter to return...")
 
-
 def view_store_orders(store_id):
     while True:
         clear_screen()
@@ -654,7 +647,6 @@ def view_store_orders(store_id):
         else:
             print("Invalid choice.")
             time.sleep(2)
-
 
 def view_store_order_details(order_id, store_id):
     clear_screen()
@@ -735,7 +727,6 @@ def view_store_order_details(order_id, store_id):
         )
 
     input("\nPress Enter to return...")
-
 
 def change_employee_salary(store_id, manager_e_id):
     while True:
@@ -827,7 +818,6 @@ def change_employee_salary(store_id, manager_e_id):
         )
         time.sleep(2)
 
-
 def view_store_pin(store_id):
     print(f"Viewing Store PIN for Store {store_id}")
 
@@ -842,7 +832,6 @@ def view_store_pin(store_id):
         print("Store not found.")
 
     input("\nPress Enter to return...")
-
 
 def view_supplier_pin(store_id):
     print(f"Viewing Supplier PIN for Store {store_id}")

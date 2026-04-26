@@ -1,3 +1,4 @@
+# SJSU CMPE 138 SPRING 2026 TEAM6
 from time import sleep
 from utils import clear_screen
 from logger_config import get_logger
@@ -6,7 +7,8 @@ from datetime import date
 
 logger = get_logger(__name__)
 
-
+# converts a restock list that contains multiplier products from different suppliers into individual supplier orders 
+# to be sent to suppliers
 def create_supplier_orders_from_restock_list(list_id, store_id):
     print(f"\nConverting Restock List {list_id} into Supplier Orders...")
     print("----------------------------------------------------------")
