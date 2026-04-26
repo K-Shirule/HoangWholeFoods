@@ -1,3 +1,4 @@
+-- # SJSU CMPE 138 SPRING 2026 TEAM6s
 DROP DATABASE IF EXISTS HoangWholeFoods;
 CREATE DATABASE HoangWholeFoods;
 USE HoangWholeFoods;

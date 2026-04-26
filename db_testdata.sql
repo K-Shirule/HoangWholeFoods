@@ -1,3 +1,4 @@
+-- # SJSU CMPE 138 SPRING 2026 TEAM6
 CREATE USER 'admin'@'localhost' IDENTIFIED BY '1234';
 
 GRANT ALL PRIVILEGES ON hoangwholefoods.* TO 'admin'@'localhost';

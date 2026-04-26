@@ -1,7 +1,4 @@
--- Standalone seed file for the expanded inventory/product dataset.
--- Use this as an alternative to db_testdata.sql when you want richer
--- inventory and product testing data. Do not run both files together
--- against the same fresh database unless you intentionally want duplicates.
+-- # SJSU CMPE 138 SPRING 2026 TEAM6
 
 CREATE USER 'admin'@'localhost' IDENTIFIED BY '1234';
 
