@@ -341,7 +341,7 @@ def update_delivery_status(store_id, employee_id):
         JOIN orders o ON dr.order_id = o.order_id
         WHERE dr.e_id = %s
           AND o.st_id = %s
-          AND dr.delivery_status NOT IN ('completed')
+          AND dr.delivery_status NOT IN ('completed', 'failed')
         ORDER BY o.order_date ASC
         """,
         (employee_id, store_id)
@@ -403,10 +403,12 @@ def update_delivery_status(store_id, employee_id):
         if not is_pickup:
             print("2. Mark as Out for Delivery")
             print("3. Mark as Completed")
-            print("4. Return")
+            print("4. Mark as Failed")
+            print("5. Return")
         else:
             print("2. Mark as Completed")
-            print("3. Return")
+            print("3. Mark as Failed")
+            print("4. Return")
 
         choice = input("Please enter your choice: ").strip()
 
@@ -439,6 +441,14 @@ def update_delivery_status(store_id, employee_id):
                 new_order_status = "fulfilled"
 
             elif choice == "4":
+                if current_status not in ("claimed", "ready", "out for delivery"):
+                    print(f"Cannot mark delivery as failed from status '{current_status}'.")
+                    time.sleep(2)
+                    continue
+                new_status = "failed"
+                new_order_status = "failed"
+
+            elif choice == "5":
                 return
 
             else:
@@ -464,6 +474,14 @@ def update_delivery_status(store_id, employee_id):
                 new_order_status = "fulfilled"
 
             elif choice == "3":
+                if current_status not in ("claimed", "ready"):
+                    print(f"Cannot mark pickup as failed from status '{current_status}'.")
+                    time.sleep(2)
+                    continue
+                new_status = "failed"
+                new_order_status = "failed"
+
+            elif choice == "4":
                 return
 
             else:
@@ -483,6 +501,15 @@ def update_delivery_status(store_id, employee_id):
                 """
                 UPDATE delivery_record
                 SET delivery_status = %s, delivered_at = NOW()
+                WHERE delivery_id = %s
+                """,
+                (new_status, delivery_id)
+            )
+        elif new_status == "failed":
+            cursor.execute(
+                """
+                UPDATE delivery_record
+                SET delivery_status = %s
                 WHERE delivery_id = %s
                 """,
                 (new_status, delivery_id)
