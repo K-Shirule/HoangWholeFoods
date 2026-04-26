@@ -7,5 +7,6 @@ db = MySQL.connect(
     host='localhost',
     user='admin',
     password='1234',
-    database='hoangwholefoods'
+    database='hoangwholefoods',
+    autocommit=False
 )
