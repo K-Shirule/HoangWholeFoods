@@ -6,3 +6,5 @@
 2026-04-25 23:19:49,115 | ERROR | customer_page | Checkout failed for customer '3', cart '2': Transaction already in progress
 2026-04-25 23:22:59,576 | ERROR | customer_page | Checkout failed for customer '1', cart '1': Transaction already in progress
 2026-04-25 23:27:34,667 | ERROR | customer_page | Checkout failed for customer '2', cart '2': Transaction already in progress
+2026-04-26 00:41:15,204 | ERROR | __main__ | Seeding failed: name 'bcrypt' is not defined
+2026-04-26 00:46:29,853 | ERROR | __main__ | Seeding failed: name 'password' is not defined

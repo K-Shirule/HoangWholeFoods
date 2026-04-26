@@ -115,3 +115,11 @@
 2026-04-25 23:28:27,844 | INFO | customer_page | Customer '1' completed checkout for cart '1'.
 2026-04-25 23:28:34,882 | INFO | customer_page | customer '1' logged out successfully.
 2026-04-25 23:29:15,945 | INFO | customer_page | customer '2' logged out successfully.
+2026-04-26 00:15:15,354 | WARNING | auth | employee 'jim.halpert@hwf.com' entered incorrect password.
+2026-04-26 00:36:23,077 | WARNING | auth | employee 'jim.halpert@hwf.com' - username not found in database.
+2026-04-26 00:36:45,524 | WARNING | auth | employee 'jim.halpert@hwf.com' - username not found in database.
+2026-04-26 00:41:15,204 | ERROR | __main__ | Seeding failed: name 'bcrypt' is not defined
+2026-04-26 00:43:28,091 | INFO | __main__ | Initial stores and store managers seeded successfully.
+2026-04-26 00:45:41,518 | INFO | store_manager_menu | Store manager '1' logged out.
+2026-04-26 00:46:29,853 | ERROR | __main__ | Seeding failed: name 'password' is not defined
+2026-04-26 00:47:07,629 | INFO | __main__ | Initial stores and store managers seeded successfully.
