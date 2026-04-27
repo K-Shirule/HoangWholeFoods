@@ -1,7 +1,7 @@
 # SJSU CMPE 138 SPRING 2026 TEAM6
 import mysql.connector as MySQL
 
-password: str = 'Thewumpus17!' # Set db server password here
+password: str = 'Thewumpus17!' # db passworad
 
 db = MySQL.connect(
     host='localhost',

@@ -680,6 +680,7 @@ def view_order(order_id, customer_id):
 def checkout(customer_id, cart_id):
     delivery_method = None
     delivery_address = 'In-Store'
+    payment_method = None
 
     while True:
         clear_screen()
@@ -730,7 +731,6 @@ def checkout(customer_id, cart_id):
     cursor = db.cursor(dictionary=True)
 
     try:
-        # Get store from cart
         cursor.execute(
             """
             SELECT st_id
@@ -747,235 +747,6 @@ def checkout(customer_id, cart_id):
 
         store_id = cart_row["st_id"]
 
-        # Get cart items
-        cursor.execute(
-            """
-            SELECT cc.prod_id, cc.quantity, p.unit_price, p.name
-            FROM cart_contains AS cc
-            JOIN product AS p ON cc.prod_id = p.prod_id
-            WHERE cc.cart_id = %s
-            """,
-            (cart_id,)
-        )
-        cart_items = cursor.fetchall()
-
-        if not cart_items:
-            print_load("Cart is empty.", 2)
-            return
-
-        total = 0
-        for item in cart_items:
-            total += float(item["unit_price"]) * float(item["quantity"])
-
-        print_load("Processing payment", 1.5)
-
-        # Simulated successful payment
-        payment_status = 'paid'
-
-        cursor.execute(
-            """
-            SELECT cc.prod_id, cc.quantity, p.unit_price, p.name
-            FROM cart_contains AS cc
-            JOIN product AS p ON cc.prod_id = p.prod_id
-            WHERE cc.cart_id = %s
-            """,
-            (cart_id,)
-        )
-        cart_items = cursor.fetchall()
-
-        if not cart_items:
-            db.rollback()
-            print_load("Cart is empty.", 2)
-            return
-
-        # Try to deduct stock item-by-item.
-        # Whoever completes this first gets the stock.
-        for item in cart_items:
-            cursor.execute(
-                """
-                UPDATE stocks
-                SET quantity = quantity - %s
-                WHERE store_id = %s
-                  AND prod_id = %s
-                  AND quantity >= %s
-                """,
-                (item["quantity"], store_id, item["prod_id"], item["quantity"])
-            )
-
-            if cursor.rowcount == 0:
-                db.rollback()
-                print(
-                    f"Checkout failed: '{item['name']}' is no longer available "
-                    f"in the requested quantity."
-                )
-                print_load("Please update your cart and try again.", 2.5)
-                return
-
-        # Recalculate total from final cart snapshot
-        total = 0
-        for item in cart_items:
-            total += float(item["unit_price"]) * float(item["quantity"])
-
-        # Create order
-        cursor.execute(
-            """
-            INSERT INTO orders(
-                delivery_method, total_amount, order_type, order_status, c_id, st_id, e_id
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, NULL)
-            """,
-            (delivery_method, total, 'Online', 'placed', customer_id, store_id)
-        )
-        order_id = cursor.lastrowid
-
-        # Insert order items
-        order_contains_args = [
-            (order_id, item["prod_id"], item["quantity"], item["unit_price"])
-            for item in cart_items
-        ]
-
-        cursor.executemany(
-            """
-            INSERT INTO order_contains(
-                order_id, prod_id, quantity, price_at_purchase
-            )
-            VALUES (%s, %s, %s, %s)
-            """,
-            order_contains_args
-        )
-
-        # Insert payment record
-        cursor.execute(
-            """
-            INSERT INTO payments(
-                method, amount, payment_status, order_id, return_id
-            )
-            VALUES (%s, %s, %s, %s, NULL)
-            """,
-            (payment_method, total, payment_status, order_id)
-        )
-
-        # Insert delivery record
-        cursor.execute(
-            """
-            INSERT INTO delivery_record(
-                delivered_at, delivered_to, delivery_status, order_id, e_id
-            )
-            VALUES (NULL, %s, 'pending', %s, NULL)
-            """,
-            (delivery_address, order_id)
-        )
-
-        # Clear cart
-        cursor.execute(
-            """
-            DELETE FROM cart_contains
-            WHERE cart_id = %s
-            """,
-            (cart_id,)
-        )
-
-        cursor.execute(
-            """
-            UPDATE shopping_cart
-            SET st_id = NULL, cart_status = 'new'
-            WHERE cart_id = %s
-            """,
-            (cart_id,)
-        )
-
-        db.commit()
-
-        logger.info(f"Customer '{customer_id}' completed checkout for cart '{cart_id}'.")
-
-        print("\nOrder placed successfully!")
-        print(f"Your order ID is: {order_id}")
-        print("1. View Order Details")
-        print("2. Return to Customer Page")
-        choice = input("Please enter your choice (1-2): ").strip()
-
-        if choice == '1':
-            view_order(order_id, customer_id)
-        return
-
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Checkout failed for customer '{customer_id}', cart '{cart_id}': {e}")
-        print("Checkout failed.")
-        time.sleep(2)
-
-    finally:
-        cursor.close()
-    delivery_method = None
-    delivery_address = 'In-Store'
-
-    while True:
-        clear_screen()
-        print("Checkout")
-        print("-----------------------------")
-        print("Please select how you would like to receive your order.")
-        print("1. In Store Pickup")
-        print("2. Delivery")
-        choice = input("Please enter your choice (1-2): ").strip()
-
-        if choice == '1':
-            delivery_method = 'Pickup'
-            delivery_address = 'In-Store'
-            break
-        elif choice == '2':
-            delivery_method = 'Delivery'
-            delivery_address = input("Please enter your delivery address: ").strip()
-            if not delivery_address:
-                print("Delivery address cannot be empty.")
-                time.sleep(2)
-                continue
-            break
-        else:
-            print_load("Invalid choice.", 1.5)
-
-    while True:
-        clear_screen()
-        print("Payment")
-        print("-----------------------------")
-        print("Payment is processed through a secure third-party provider.")
-        print("1. Credit/Debit Card")
-        print("2. Cash")
-        print("3. Mobile Wallet")
-        payment_choice = input("Please enter your choice (1-3): ").strip()
-
-        if payment_choice == '1':
-            payment_method = 'Card'
-            break
-        elif payment_choice == '2':
-            payment_method = 'Cash'
-            break
-        elif payment_choice == '3':
-            payment_method = 'Mobile Wallet'
-            break
-        else:
-            print_load("Invalid choice.", 1.5)
-
-    cursor = db.cursor(dictionary=True)
-
-    try:
-        # Get store from cart
-        cursor.execute(
-            """
-            SELECT st_id
-            FROM shopping_cart
-            WHERE cart_id = %s
-            """,
-            (cart_id,)
-        )
-        cart_row = cursor.fetchone()
-
-        if not cart_row or cart_row["st_id"] is None:
-            print_load("Cart is not assigned to a store.", 2)
-            return
-
-        store_id = cart_row["st_id"]
-
-        # Get cart items
         cursor.execute(
             """
             SELECT cc.prod_id, cc.quantity, p.unit_price, p.name
@@ -1015,8 +786,6 @@ def checkout(customer_id, cart_id):
             print_load("Cart is empty.", 2)
             return
 
-        # Try to deduct stock item-by-item.
-        # Whoever completes this first gets the stock.
         for item in cart_items:
             cursor.execute(
                 """
@@ -1038,12 +807,10 @@ def checkout(customer_id, cart_id):
                 print_load("Please update your cart and try again.", 2.5)
                 return
 
-        # Recalculate total from final cart snapshot
         total = 0
         for item in cart_items:
             total += float(item["unit_price"]) * float(item["quantity"])
 
-        # Create order
         cursor.execute(
             """
             INSERT INTO orders(
@@ -1055,7 +822,6 @@ def checkout(customer_id, cart_id):
         )
         order_id = cursor.lastrowid
 
-        # Insert order items
         order_contains_args = [
             (order_id, item["prod_id"], item["quantity"], item["unit_price"])
             for item in cart_items
@@ -1071,7 +837,6 @@ def checkout(customer_id, cart_id):
             order_contains_args
         )
 
-        # Insert payment record
         cursor.execute(
             """
             INSERT INTO payments(
@@ -1082,7 +847,6 @@ def checkout(customer_id, cart_id):
             (payment_method, total, payment_status, order_id)
         )
 
-        # Insert delivery record
         cursor.execute(
             """
             INSERT INTO delivery_record(
@@ -1093,7 +857,6 @@ def checkout(customer_id, cart_id):
             (delivery_address, order_id)
         )
 
-        # Clear cart
         cursor.execute(
             """
             DELETE FROM cart_contains
@@ -1133,7 +896,6 @@ def checkout(customer_id, cart_id):
 
     finally:
         cursor.close()
-
 if __name__ == '__main__':
     customer = input("Enter customer ID to test: ").strip()
     customer_page(customer)
