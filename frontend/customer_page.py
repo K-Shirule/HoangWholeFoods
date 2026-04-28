@@ -3,7 +3,7 @@ import time
 import bcrypt
 
 from auth import get_valid_phone, get_valid_email
-from utils import clear_screen, print_load
+from utils import clear_screen, print_load, reconnect
 from products_page import view_product_catalog, _fetch_all, _fetch_one
 from logger_config import get_logger
 from db_connector import db
@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 #customer landing function/page
 def customer_page(customer_id):
     while True:
+        reconnect()
         clear_screen()
         print("Welcome to the Customer Page!")
         print("Here you can view products, place orders, and manage your account.")

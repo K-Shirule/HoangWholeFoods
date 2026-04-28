@@ -2,7 +2,7 @@
 import sys
 
 from auth import login_user, register_user
-from utils import clear_screen, print_load
+from utils import clear_screen, print_load, reconnect
 from db_connector import db
 from logger_config import get_logger
 import bcrypt
@@ -62,7 +62,7 @@ def show_homepage():
         print("3. Exit")
 
         choice = input("\nEnter your choice: ").strip()
-
+        reconnect()
         if choice == "1":
             clear_screen()
             login()
@@ -81,7 +81,7 @@ def initial_data():
     cursor = db.cursor(dictionary=True)
 
     try:
-        #random stores data
+        # Insert stores first with manager_e_id = NULL
         stores = [
             ('San Jose, CA', 'Downtown SJ', '4085551234', 'sj_downtown@hwf.com', '123 Market St', 'K7M3X9', 'T5R8Q2'),
             ('Santa Clara, CA', 'Santa Clara Central', '4085552345', 'sc_central@hwf.com', '456 El Camino Real', 'P9L4W6', 'H3V7Z8'),
@@ -102,25 +102,38 @@ def initial_data():
                 cursor.execute(
                     """
                     INSERT INTO store (
-                        location, branch_name, phone, email, address, store_pin, supplier_pin
+                        location, branch_name, phone, email, address,
+                        manager_e_id, store_pin, supplier_pin
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, NULL, %s, %s)
                     """,
                     (location, branch_name, phone, email, address, store_pin, supplier_pin)
                 )
 
         db.commit()
 
-        #managers
+        # Managers: map each manager to store email, not assumed store ID
         managers = [
-            (1, 'Jim', 'Halpert', 'jim.halpert@hwf.com', '4085551111', 75000, True, 'Jim@123'),
-            (2, 'Bruce', 'Wayne', 'bruce.wayne@hwf.com', '4085552222', 76000, True, 'Bruce@123'),
-            (3, 'Arry', 'Potta', 'arry.potta@hwf.com', '4085553333', 74000, True, 'Arry@123'),
-            (4, 'Ishow', 'Speed', 'ishow.speed@hwf.com', '4085554444', 77000, True, 'Speed@123')
+            ('sj_downtown@hwf.com', 'Jim', 'Halpert', 'jim.halpert@hwf.com', '4085551111', 75000, True, 'Jim@123'),
+            ('sc_central@hwf.com', 'Bruce', 'Wayne', 'bruce.wayne@hwf.com', '4085552222', 76000, True, 'Bruce@123'),
+            ('sv_plaza@hwf.com', 'Arry', 'Potta', 'arry.potta@hwf.com', '4085553333', 74000, True, 'Arry@123'),
+            ('cupertino@hwf.com', 'Ishow', 'Speed', 'ishow.speed@hwf.com', '4085554444', 77000, True, 'Speed@123')
         ]
 
         for manager in managers:
-            st_id, first_name, last_name, email, phone, salary, is_current, plain_password = manager
+            store_email, first_name, last_name, email, phone, salary, is_current, plain_password = manager
+
+            # Get the real st_id
+            cursor.execute(
+                "SELECT st_id FROM store WHERE email = %s LIMIT 1",
+                (store_email,)
+            )
+            store_row = cursor.fetchone()
+
+            if not store_row:
+                continue
+
+            st_id = store_row["st_id"]
 
             cursor.execute(
                 "SELECT e_id FROM employee WHERE email = %s LIMIT 1",
@@ -129,8 +142,10 @@ def initial_data():
             exists = cursor.fetchone()
 
             if not exists:
-                hashed_password = bcrypt.hashpw(plain_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
+                hashed_password = bcrypt.hashpw(
+                    plain_password.encode("utf-8"),
+                    bcrypt.gensalt()
+                ).decode("utf-8")
 
                 cursor.execute(
                     """
@@ -146,6 +161,34 @@ def initial_data():
 
         db.commit()
 
+        # Update stores with the real manager e_id
+        manager_links = [
+            ('sj_downtown@hwf.com', 'jim.halpert@hwf.com'),
+            ('sc_central@hwf.com', 'bruce.wayne@hwf.com'),
+            ('sv_plaza@hwf.com', 'arry.potta@hwf.com'),
+            ('cupertino@hwf.com', 'ishow.speed@hwf.com')
+        ]
+
+        for store_email, manager_email in manager_links:
+            cursor.execute(
+                "SELECT e_id FROM employee WHERE email = %s LIMIT 1",
+                (manager_email,)
+            )
+            manager_row = cursor.fetchone()
+
+            if manager_row:
+                manager_e_id = manager_row["e_id"]
+
+                cursor.execute(
+                    """
+                    UPDATE store
+                    SET manager_e_id = %s
+                    WHERE email = %s
+                    """,
+                    (manager_e_id, store_email)
+                )
+
+        db.commit()
         logger.info("Initial stores and store managers seeded successfully.")
 
     except Exception as e:
@@ -153,7 +196,6 @@ def initial_data():
         logger.error(f"Seeding failed: {e}")
 
     finally:
-        cursor.close()
-        
+        cursor.close()     
 if __name__ == "__main__":
     show_homepage()

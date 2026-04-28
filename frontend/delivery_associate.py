@@ -1,7 +1,7 @@
 # SJSU CMPE 138 SPRING 2026 TEAM6
 import time
 from db_connector import db
-from utils import clear_screen
+from utils import clear_screen, reconnect
 from logger_config import get_logger
 
 logger = get_logger(__name__)
@@ -44,6 +44,7 @@ def get_delivery_record(delivery_id, store_id, employee_id=None):
 #main landing page for delivery assoc.
 def delivery_associate_page(store_id, employee_id):
     while True:
+        reconnect()
         clear_screen()
         print("Welcome to the Delivery Associate Page")
         print("Here you can claim pending deliveries and update delivery status.")

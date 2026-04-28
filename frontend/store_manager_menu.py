@@ -2,7 +2,7 @@
 import time
 from db_connector import db
 from logger_config import get_logger
-from utils import clear_screen, print_load
+from utils import clear_screen, print_load, reconnect
 from create_supplier_orders import create_supplier_orders_from_restock_list
 
 logger = get_logger(__name__)
@@ -10,6 +10,7 @@ logger = get_logger(__name__)
 #store manager landing menu
 def store_manager_page(store_id, e_id):
     while True:
+        reconnect()
         clear_screen()
         print("Welcome to the Store Manager Page")
         print("Here you can manage employees, approve restock requests, and view store activity.")

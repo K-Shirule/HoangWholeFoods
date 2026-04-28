@@ -1,6 +1,6 @@
 # SJSU CMPE 138 SPRING 2026 TEAM6
 from time import sleep
-from utils import clear_screen
+from utils import clear_screen, reconnect
 from logger_config import get_logger
 from db_connector import db
 from datetime import date
@@ -12,7 +12,7 @@ logger = get_logger(__name__)
 def create_supplier_orders_from_restock_list(list_id, store_id):
     print(f"\nConverting Restock List {list_id} into Supplier Orders...")
     print("----------------------------------------------------------")
-
+    reconnect()
     cursor = db.cursor(dictionary=True)
 
     try:

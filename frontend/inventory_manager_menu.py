@@ -3,7 +3,7 @@ import time
 
 from db_connector import db
 from logger_config import get_logger
-from utils import print_load, clear_screen
+from utils import print_load, clear_screen, reconnect
 
 logger = get_logger(__name__)
 
@@ -74,6 +74,7 @@ def _calculate_weighted_price(current_qty, current_price, incoming_qty, incoming
 #landing page/menu for invneotry manager
 def inventory_manager_menu(store_id, employee_id):
     while True:
+        reconnect()
         clear_screen()
         print("\nInventory Manager Menu:")
         print("1. View Inventory")
@@ -87,7 +88,7 @@ def inventory_manager_menu(store_id, employee_id):
         print("9. View Supplier Orders")
         print("10. Logout")
 
-        choice = input("\nPlease select an option (1-9): ").strip()
+        choice = input("\nPlease select an option (1-10): ").strip()
 
         if choice == "1":
             view_inventory(store_id)

@@ -16,3 +16,8 @@ def print_load(msg: str | None, duration: float = 1):
             print('.', end='', flush=True)
             time.sleep(duration / (num_ticks * num_cycles))
     print('\033[?25h')
+
+def reconnect():
+    from db_connector import db
+    if not db.is_connected():
+        db.reconnect()

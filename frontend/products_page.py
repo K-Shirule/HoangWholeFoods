@@ -167,10 +167,11 @@ def search_products(store_id):
             print(f"\nShowing results for product name containing '{keyword}'...")
             _print_product_rows(rows)
             input("\nPress Enter to continue...")
-            category_formatted = f"%{category}%"
 
         elif choice == "2":
             category = input("Enter category name: ").strip()
+            
+            category_formatted = f"%{category}%"
             rows = _fetch_all(
                 """
                 SELECT
@@ -187,7 +188,7 @@ def search_products(store_id):
                 JOIN category AS c
                     ON p.category_id = c.cat_id
                 WHERE s.store_id = %s
-                  AND (c.name LIKE \% %s OR c.description LIKE %s)
+                  AND (c.name LIKE %s OR c.description LIKE %s)
                 ORDER BY p.name
                 """,
                 (store_id, category_formatted, category_formatted),

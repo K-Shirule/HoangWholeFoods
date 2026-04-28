@@ -2,7 +2,7 @@
 import time
 import random
 from db_connector import db
-from utils import clear_screen, print_load
+from utils import clear_screen, print_load, reconnect
 from logger_config import get_logger
 
 logger = get_logger(__name__)
@@ -11,6 +11,7 @@ logger = get_logger(__name__)
 def floor_employee_page(store_id, employee_id):
     try:
         while True:
+            reconnect()
             clear_screen()
             print("Welcome to the Floor Employee Page")
             print("Here you can manage in-store orders and process returns.")

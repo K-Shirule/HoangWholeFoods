@@ -2,7 +2,7 @@
 import time
 from datetime import datetime
 
-from utils import clear_screen
+from utils import clear_screen, reconnect
 from logger_config import get_logger
 from db_connector import db
 
@@ -14,6 +14,7 @@ VALID_SUPPLIER_ORDER_STATUSES = ("pending", "shipped", "delivered", "received")
 #main landing page/function for supplier
 def supplier_page(supplier_id):
     while True:
+        reconnect()
         clear_screen()
         print("Welcome to the Supplier Page")
         print("Here you can view incoming supplier orders and manage the products you supply.")
