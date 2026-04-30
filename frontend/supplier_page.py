@@ -349,6 +349,7 @@ def view_supplied_products(supplier_id):
             )
 
         input("\nPress Enter to return...")
+        return
 
 def add_supplied_product(supplier_id):
     while True:

@@ -189,13 +189,109 @@ def initial_data():
                 )
 
         db.commit()
-        logger.info("Initial stores and store managers seeded successfully.")
+
+        # Seed one supplier + one of each employee type for Downtown SJ
+        cursor.execute(
+            "SELECT st_id FROM store WHERE email = %s LIMIT 1",
+            ('sj_downtown@hwf.com',)
+        )
+        downtown_store = cursor.fetchone()
+
+        if downtown_store:
+            st_id = downtown_store["st_id"]
+
+            # Seed supplier
+            cursor.execute(
+                "SELECT supplier_id FROM supplier WHERE email = %s LIMIT 1",
+                ('supplier@gmail.com',)
+            )
+            supplier_exists = cursor.fetchone()
+
+            if not supplier_exists:
+                supplier_password = bcrypt.hashpw(
+                    'supplier123'.encode("utf-8"),
+                    bcrypt.gensalt()
+                ).decode("utf-8")
+
+                cursor.execute(
+                    """
+                    INSERT INTO supplier (
+                        supplier_name,
+                        email,
+                        address,
+                        password_hash,
+                        billing_term,
+                        phone
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        'Seed Supplier',
+                        'supplier@gmail.com',
+                        '100 Supplier St, San Jose, CA',
+                        supplier_password,
+                        None,
+                        '4085559001'
+                    )
+                )
+
+            employees_to_seed = [
+                ('inventory@gmail.com', 'Inventory', 'Manager', '4085559002', 55000, 'inventory_manager', 'inventory123'),
+                ('floor@gmail.com', 'Floor', 'Employee', '4085559003', 45000, 'floor_employee', 'floor123'),
+                ('delivery@gmail.com', 'Delivery', 'Associate', '4085559004', 42000, 'delivery_associate', 'delivery123'),
+            ]
+
+            for email, first_name, last_name, phone, salary, role, plain_password in employees_to_seed:
+                cursor.execute(
+                    "SELECT e_id FROM employee WHERE email = %s LIMIT 1",
+                    (email,)
+                )
+                employee_exists = cursor.fetchone()
+
+                if not employee_exists:
+                    hashed_password = bcrypt.hashpw(
+                        plain_password.encode("utf-8"),
+                        bcrypt.gensalt()
+                    ).decode("utf-8")
+
+                    cursor.execute(
+                        """
+                        INSERT INTO employee (
+                            st_id,
+                            first_name,
+                            last_name,
+                            email,
+                            phone,
+                            salary,
+                            is_current,
+                            password_hash,
+                            role,
+                            start_date
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, CURDATE())
+                        """,
+                        (
+                            st_id,
+                            first_name,
+                            last_name,
+                            email,
+                            phone,
+                            salary,
+                            True,
+                            hashed_password,
+                            role
+                        )
+                    )
+
+        db.commit()
+        logger.info("Initial stores, managers, supplier, and employee roles seeded successfully.")
 
     except Exception as e:
         db.rollback()
         logger.error(f"Seeding failed: {e}")
 
     finally:
-        cursor.close()     
+        cursor.close()
+
 if __name__ == "__main__":
     show_homepage()
